@@ -31,6 +31,9 @@
 
 #define T_HANDLE T_POINTER
 
+// For Static Linking. Fixes a collision with _winapi.c
+#define OverlappedType _overlapped_OverlappedType
+
 /*[python input]
 class OVERLAPPED_converter(CConverter):
     type = 'OVERLAPPED *'
