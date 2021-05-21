@@ -548,15 +548,10 @@ class build_ext(Command):
         # Detect target language, if not provided
         language = ext.language or self.compiler.detect_language(sources)
 
-        self.compiler.link_shared_object(
+        self.compiler.create_static_lib(
             objects, ext_path,
-            libraries=self.get_libraries(ext),
-            library_dirs=ext.library_dirs,
-            runtime_library_dirs=ext.runtime_library_dirs,
-            extra_postargs=extra_args,
-            export_symbols=self.get_export_symbols(ext),
+            output_dir=os.path.abspath("."),
             debug=self.debug,
-            build_temp=self.build_temp,
             target_lang=language)
 
     def swig_sources(self, sources, extension):

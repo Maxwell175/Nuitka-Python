@@ -244,11 +244,11 @@ class MSVCCompiler(CCompiler) :
         # Future releases of Python 3.x will include all past
         # versions of vcruntime*.dll for compatibility.
         self.compile_options = [
-            '/nologo', '/Ox', '/W3', '/GL', '/DNDEBUG', '/MD'
+            '/nologo', '/Ox', '/W3', '/GL', '/DNDEBUG', '/MT'
         ]
 
         self.compile_options_debug = [
-            '/nologo', '/Od', '/MDd', '/Zi', '/W3', '/D_DEBUG'
+            '/nologo', '/Od', '/MTd', '/Zi', '/W3', '/D_DEBUG'
         ]
 
         ldflags = [
