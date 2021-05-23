@@ -25,12 +25,6 @@
             <Component Id="ffi.lib" Directory="libs" Guid="*">
                 <File Name="ffi.lib" KeyPath="yes" />
             </Component>
-            <Component Id="venvlauncher.exe" Directory="Lib_venv_scripts_nt" Guid="*">
-                <File Name="python.exe" Source="venvlauncher.exe" KeyPath="yes" />
-            </Component>
-            <Component Id="venvwlauncher.exe" Directory="Lib_venv_scripts_nt" Guid="*">
-                <File Name="pythonw.exe" Source="venvwlauncher.exe" KeyPath="yes" />
-            </Component>
         </ComponentGroup>
     </Fragment>
     

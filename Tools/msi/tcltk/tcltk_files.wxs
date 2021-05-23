@@ -8,10 +8,10 @@
                 <File Name="_tkinter.lib" KeyPath="yes" />
             </Component>
             <Component Id="tcl86t.lib" Directory="libs" Guid="*">
-                <File Name="tcl86t.lib" Source="$(var.tcltkDir)lib\tcl86t.lib" KeyPath="yes" />
+                <File Name="tcl86t.lib" Source="..\..\externals\tcltk-8.6.9.0\amd64\lib\tcl86t.lib" KeyPath="yes" />
             </Component>
             <Component Id="tk86t.lib" Directory="libs" Guid="*">
-                <File Name="tk86t.lib" Source="$(var.tcltkDir)lib\tk86t.lib" KeyPath="yes" />
+                <File Name="tk86t.lib" Source="..\..\externals\tcltk-8.6.9.0\amd64\lib\tk86t.lib" KeyPath="yes" />
             </Component>
             <Component Id="tcl86t.dll" Directory="DLLs" Guid="*">
                 <File Name="tcl86t.dll" KeyPath="yes">
