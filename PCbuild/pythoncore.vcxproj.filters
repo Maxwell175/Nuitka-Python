@@ -698,6 +698,9 @@
     <ClInclude Include="$(zlibDir)\zconf.in.h" />
     <ClInclude Include="$(zlibDir)\zlib.h" />
     <ClInclude Include="$(zlibDir)\zutil.h" />
+    <ClInclude Include="..\Include\staticinit.h">
+      <Filter>Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Modules\_abc.c">

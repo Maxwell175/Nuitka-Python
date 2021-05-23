@@ -230,6 +230,7 @@ class MSVCCompiler(CCompiler) :
         self.rc = _find_exe("rc.exe", paths)   # resource compiler
         self.mc = _find_exe("mc.exe", paths)   # message compiler
         self.mt = _find_exe("mt.exe", paths)   # message compiler
+        self.dumpbin = _find_exe("dumpbin.exe", paths)
 
         for dir in vc_env.get('include', '').split(os.pathsep):
             if dir:

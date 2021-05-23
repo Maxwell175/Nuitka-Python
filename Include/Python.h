@@ -106,4 +106,6 @@
 #include "cpython/pyfpe.h"
 #include "tracemalloc.h"
 
+#include "staticinit.h"
+
 #endif /* !Py_PYTHON_H */
