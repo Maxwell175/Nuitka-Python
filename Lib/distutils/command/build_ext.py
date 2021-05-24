@@ -8,6 +8,7 @@ import contextlib
 import os
 import re
 import sys
+import json
 from distutils.core import Command
 from distutils.errors import *
 from distutils.sysconfig import customize_compiler, get_python_version
@@ -553,6 +554,15 @@ class build_ext(Command):
             output_dir=os.path.abspath("."),
             debug=self.debug,
             target_lang=language)
+        
+        result_path = self.compiler.library_filename(ext_path, output_dir=os.path.abspath("."))
+        
+        with open(result_path + '.link.json', 'w') as f:
+            json.dump({
+                'libraries': self.get_libraries(ext),
+                'library_dirs': ext.library_dirs,
+                'runtime_library_dirs': ext.runtime_library_dirs,
+                'extra_postargs': extra_args}, f)
 
     def swig_sources(self, sources, extension):
         """Walk the list of source files in 'sources', looking for SWIG
