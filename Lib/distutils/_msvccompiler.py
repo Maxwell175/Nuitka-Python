@@ -526,6 +526,8 @@ class MSVCCompiler(CCompiler) :
     def find_library_file(self, dirs, lib, debug=0):
         # Prefer a debugging library if found (and requested), but deal
         # with it if we don't have one.
+        if len(dirs) == 1 and os.path.isfile(os.path.join(dirs[0], lib)):
+            return os.path.join(dirs[0], lib)
         if debug:
             try_names = [lib + "_d", lib]
         else:

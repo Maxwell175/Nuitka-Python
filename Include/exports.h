@@ -2,8 +2,8 @@
 #define Py_EXPORTS_H
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-    #define Py_IMPORTED_SYMBOL __declspec(dllimport)
-    #define Py_EXPORTED_SYMBOL __declspec(dllexport)
+    #define Py_IMPORTED_SYMBOL 
+    #define Py_EXPORTED_SYMBOL 
     #define Py_LOCAL_SYMBOL
 #else
 /*
