@@ -17,6 +17,8 @@ from distutils.util import convert_path, subst_vars, change_root
 from distutils.util import get_platform
 from distutils.errors import DistutilsOptionError
 
+import rebuildpython
+
 from site import USER_BASE
 from site import USER_SITE
 
@@ -392,6 +394,9 @@ class install(Command):
 
         # Punt on doc directories for now -- after all, we're punting on
         # documentation completely!
+        
+        # For Static build, fall back to a more "normal" site-packages directory layout.
+        self.old_and_unmanageable = True
 
     def dump_dirs(self, msg):
         """Dumps the list of user options."""
@@ -604,6 +609,8 @@ class install(Command):
                        "Python's module search path (sys.path) -- "
                        "you'll have to change the search path yourself"),
                        self.install_lib)
+        
+        rebuildpython.run_rebuild()
 
     def create_path_file(self):
         """Creates the .pth file"""

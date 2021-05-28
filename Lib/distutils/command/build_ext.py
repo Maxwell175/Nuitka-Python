@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import json
+import shutil
 from distutils.core import Command
 from distutils.errors import *
 from distutils.sysconfig import customize_compiler, get_python_version
@@ -563,6 +564,17 @@ class build_ext(Command):
                 'library_dirs': ext.library_dirs,
                 'runtime_library_dirs': ext.runtime_library_dirs,
                 'extra_postargs': extra_args}, f)
+                
+        for lib in self.get_libraries(ext):
+            for dir in ext.library_dirs:
+                lib_install_dir = os.path.join(os.path.dirname(ext_path), dir)
+                print(os.path.join(ext_path, dir, lib + '.lib'))
+                if os.path.isfile(os.path.join(dir, lib + '.lib')):
+                    if not os.path.isabs(dir):
+                        if not os.path.exists(lib_install_dir):
+                            os.makedirs(lib_install_dir)
+                        shutil.copyfile(os.path.join(dir, lib + '.lib'), os.path.join(lib_install_dir, lib + '.lib'))
+                    break
 
     def swig_sources(self, sources, extension):
         """Walk the list of source files in 'sources', looking for SWIG

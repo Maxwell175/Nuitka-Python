@@ -13,74 +13,108 @@ import sysconfig
 import json
 import tempfile
 import ctypes
+import copy
 MOVEFILE_DELAY_UNTIL_REBOOT = 4
 
-moduleImportStr = ""
-for pkg in pkgutil.iter_modules():
-    moduleImportStr += "import " + pkg.name + "\n"
+def run_rebuild():
+    initial_sys_path = copy.deepcopy(sys.path)
 
-finder = modulefinder.ModuleFinder()
-stuff = ('py', "rb", modulefinder._PY_SOURCE)
-fp = io.BytesIO(moduleImportStr.encode('utf-8'))
-finder.load_module("moduleImports", fp, "moduleImports.py", stuff)
+    installDir = os.path.dirname(sys.executable)
 
+    for i, path in reversed(list(enumerate(initial_sys_path))):
+        if installDir not in path:
+            del sys.path[i]
 
-installDir = os.path.dirname(sys.executable)
-foundLibs = {}
+    moduleImportStr = ""
+    for pkg in pkgutil.iter_modules():
+        if '-' not in pkg.name:
+            moduleImportStr += "import " + pkg.name + "\n"
 
-compiler = distutils.ccompiler.new_compiler(verbose=5)
-compiler.initialize()
-
-
-def findmodulelib(pathsToSearch, name, prefix=''):
-    for path in pathsToSearch:
-        if os.path.isfile(os.path.join(path, name + ".lib")):
-            foundLibs[prefix + name] = os.path.join(path, name + ".lib")
-            break
-        if os.path.isfile(os.path.join(path, name + get_config_var('EXT_SUFFIX'))):
-            foundLibs[prefix + name] = os.path.join(path, name + get_config_var('EXT_SUFFIX'))
-            break
-        if os.path.isfile(os.path.join(path, name + get_config_var('EXT_SUFFIX') + ".lib")):
-            foundLibs[prefix + name] = os.path.join(path, name + get_config_var('EXT_SUFFIX') + ".lib")
-            break
-
-for importError in finder.import_errors:
-    pathsToSearch = sys.path + [os.path.join(installDir, 'libs')]
-    if importError.parent is not None:
-        pathsToSearch = importError.parent.__path__ + pathsToSearch
-    findmodulelib(pathsToSearch, importError.__name__, importError.parent.__name__ + "." if importError.parent else "")
-
-for module in finder.modules.values():
-    pathsToSearch = sys.path + [os.path.join(installDir, 'libs')]
-    if module.__path__ is not None:
-        pathsToSearch = module.__path__ + pathsToSearch
-    findmodulelib(pathsToSearch, module.__name__)
+    finder = modulefinder.ModuleFinder()
+    stuff = ('py', "rb", modulefinder._PY_SOURCE)
+    fp = io.BytesIO(moduleImportStr.encode('utf-8'))
+    finder.load_module("moduleImports", fp, "moduleImports.py", stuff)
 
 
-print('Scanning for any additional libs to link...')
+    foundLibs = {}
 
-# Start with the libs needed for a base interpreter.
-linkLibs = ['advapi32', 'shell32', 'ole32', 'oleaut32', 'kernel32', 'user32', 'gdi32', 'winspool', 'comdlg32', 'uuid', 'odbc32', 'odbccp32', 'shlwapi', 'ws2_32', 'version', 'libssl', 'libcrypto', 'tcl86t', 'tk86t', 'Crypt32', 'Iphlpapi', 'msi', 'Rpcrt4', 'Cabinet', 'winmm']
+    compiler = distutils.ccompiler.new_compiler(verbose=5)
+    compiler.initialize()
 
-library_dirs = [sysconfig.get_config_var('srcdir'), os.path.join(sysconfig.get_config_var('srcdir'), 'libs')]
+    checkedLibs = set()
 
-# Scrape all available libs from the libs directory. We will let the linker worry about filtering out extra symbols.
-for file in glob.glob(os.path.join(sysconfig.get_config_var('srcdir'), 'libs', '*.lib')):
-    linkLibs.append(file)
+    def findmodulelib(pathsToSearch, name, prefix=''):
+        for path in pathsToSearch:
+            if os.path.isfile(os.path.join(path, name + ".lib")):
+                foundLibs[prefix + name] = os.path.join(path, name + ".lib")
+                checkedLibs.add(os.path.join(path, name + ".lib"))
+                break
+            if os.path.isfile(os.path.join(path, name + get_config_var('EXT_SUFFIX'))):
+                foundLibs[prefix + name] = os.path.join(path, name + get_config_var('EXT_SUFFIX'))
+                checkedLibs.add(os.path.join(path, name + get_config_var('EXT_SUFFIX')))
+                break
+            if os.path.isfile(os.path.join(path, name + get_config_var('EXT_SUFFIX') + ".lib")):
+                foundLibs[prefix + name] = os.path.join(path, name + get_config_var('EXT_SUFFIX') + ".lib")
+                checkedLibs.add(os.path.join(path, name + get_config_var('EXT_SUFFIX') + ".lib"))
+                break
 
-for name, path in foundLibs.items():
-    linkLibs += [path]
+    for importError in finder.import_errors:
+        pathsToSearch = sys.path + [os.path.join(installDir, 'libs')]
+        if importError.parent is not None:
+            pathsToSearch = importError.parent.__path__ + pathsToSearch
+        findmodulelib(pathsToSearch, importError.__name__, importError.parent.__name__ + "." if importError.parent else "")
 
-    if os.path.isfile(path + '.link.json'):
-        with open(path + '.link.json', 'r') as f:
-            linkData = json.load(f)
-            print(linkData)
-            linkLibs += linkData['libraries']
-            library_dirs += linkData['library_dirs']
+    for module in finder.modules.values():
+        pathsToSearch = sys.path + [os.path.join(installDir, 'libs')]
+        if module.__path__ is not None:
+            pathsToSearch = module.__path__ + pathsToSearch
+        findmodulelib(pathsToSearch, module.__name__)
 
-print("Generating interpreter sources...")
 
-staticinitheader = """#ifndef Py_STATICINIT_H
+    # Scan sys.path for any more lingering static libs.
+    for path in sys.path:
+        if path == installDir:
+            continue
+        for file in glob.glob(os.path.join(path, '**', '*.lib'), recursive=True):
+            if file in checkedLibs:
+                continue
+            initFunctions = [x.decode('ascii') for x in
+                             subprocess.check_output([compiler.dumpbin, '/all', file]).split(b"\r\n") if
+                             b'PyInit' in x]
+            # If this lib has a PyInit function, we should link it in.
+            if initFunctions:
+                relativePath = os.path.relpath(file, path)
+                if 'site-packages' in relativePath:
+                    continue
+                relativePath = relativePath.replace(get_config_var('EXT_SUFFIX'), '').replace('.lib', '')
+                relativePath = relativePath.replace('\\', '.').replace('/', '.')
+                print(relativePath, file)
+                foundLibs[relativePath] = file
+
+    print('Scanning for any additional libs to link...')
+
+    # Start with the libs needed for a base interpreter.
+    linkLibs = ['advapi32', 'shell32', 'ole32', 'oleaut32', 'kernel32', 'user32', 'gdi32', 'winspool', 'comdlg32', 'uuid', 'odbc32', 'odbccp32', 'shlwapi', 'ws2_32', 'version', 'libssl', 'libcrypto', 'tcl86t', 'tk86t', 'Crypt32', 'Iphlpapi', 'msi', 'Rpcrt4', 'Cabinet', 'winmm']
+
+    library_dirs = [sysconfig.get_config_var('srcdir'), os.path.join(sysconfig.get_config_var('srcdir'), 'libs')]
+
+    # Scrape all available libs from the libs directory. We will let the linker worry about filtering out extra symbols.
+    for file in glob.glob(os.path.join(sysconfig.get_config_var('srcdir'), 'libs', '*.lib')):
+        linkLibs.append(file)
+
+    for name, path in foundLibs.items():
+        linkLibs += [path]
+
+        if os.path.isfile(path + '.link.json'):
+            with open(path + '.link.json', 'r') as f:
+                linkData = json.load(f)
+                print(linkData)
+                linkLibs += linkData['libraries']
+                library_dirs += [os.path.join(os.path.dirname(path), x) for x in linkData['library_dirs']]
+
+    print("Generating interpreter sources...")
+
+    staticinitheader = """#ifndef Py_STATICINIT_H
 #define Py_STATICINIT_H
 
 #include "object.h"
@@ -94,16 +128,16 @@ extern "C" {
 #endif
 """
 
-for key, value in foundLibs.items():
-    initFunctions = [x.decode('ascii') for x in subprocess.check_output([compiler.dumpbin, '/all', value]).split(b"\r\n") if b'PyInit' in x]
-    if not initFunctions:
-        print("Init not found!", key, value)
-        continue
-    initFunction = [x for x in initFunctions[-1].split(' ') if len(x) > 6][-1]
-    staticinitheader += "	extern  PyObject* " + initFunction + "(void);\n"
+    for key, value in foundLibs.items():
+        initFunctions = [x.decode('ascii') for x in subprocess.check_output([compiler.dumpbin, '/all', value]).split(b"\r\n") if b'PyInit' in x]
+        if not initFunctions:
+            print("Init not found!", key, value)
+            continue
+        initFunction = [x for x in initFunctions[-1].split(' ') if len(x) > 6][-1]
+        staticinitheader += "	extern  PyObject* " + initFunction + "(void);\n"
 
 
-staticinitheader += """
+    staticinitheader += """
 #ifdef __cplusplus
 }
 #endif // __cplusplus
@@ -111,14 +145,14 @@ staticinitheader += """
 inline void Py_InitStaticModules() {
 """
 
-for key, value in foundLibs.items():
-    initFunctions = [x.decode('ascii') for x in subprocess.check_output([compiler.dumpbin, '/all', value]).split(b"\r\n") if b'PyInit' in x]
-    if not initFunctions:
-        continue
-    initFunction = [x for x in initFunctions[-1].split(' ') if len(x) > 6][-1]
-    staticinitheader += "	PyImport_AppendInittab(\"" + key + "\", " + initFunction + ");\n"
+    for key, value in foundLibs.items():
+        initFunctions = [x.decode('ascii') for x in subprocess.check_output([compiler.dumpbin, '/all', value]).split(b"\r\n") if b'PyInit' in x]
+        if not initFunctions:
+            continue
+        initFunction = [x for x in initFunctions[-1].split(' ') if len(x) > 6][-1]
+        staticinitheader += "	PyImport_AppendInittab(\"" + key + "\", " + initFunction + ");\n"
 
-staticinitheader += """
+    staticinitheader += """
 }
 
 #endif
@@ -126,37 +160,45 @@ staticinitheader += """
 #endif // !Py_STATICINIT_H
 """
 
-with open(os.path.join(sysconfig.get_config_var('INCLUDEPY'), 'staticinit.h'), 'w') as f:
-    f.write(staticinitheader)
+    with open(os.path.join(sysconfig.get_config_var('INCLUDEPY'), 'staticinit.h'), 'w') as f:
+        f.write(staticinitheader)
 
-print('Compiling new interpreter...')
+    print('Compiling new interpreter...')
 
-build_dir = os.path.join(sysconfig.get_config_var('srcdir'), 'interpreter_build')
+    build_dir = os.path.join(sysconfig.get_config_var('srcdir'), 'interpreter_build')
 
-if os.path.isdir(build_dir):
-    shutil.rmtree(build_dir)
+    if os.path.isdir(build_dir):
+        shutil.rmtree(build_dir)
 
-include_dirs = [sysconfig.get_config_var('INCLUDEPY')]
-macros = [('Py_BUILD_CORE', None)]
+    include_dirs = [sysconfig.get_config_var('INCLUDEPY')]
+    macros = [('Py_BUILD_CORE', None)]
 
-compiler.compile(['python.c'], output_dir=build_dir, include_dirs=include_dirs, macros=macros)
+    os.chdir(sysconfig.get_config_var('srcdir'))
 
-compiler.link_executable([os.path.join(build_dir, 'python.obj')], 'python', output_dir=build_dir, libraries=linkLibs, library_dirs=library_dirs)
+    compiler.compile(['python.c'], output_dir=build_dir, include_dirs=include_dirs, macros=macros)
 
-# Replace running interpreter.
-interpreter_path = sys.executable
-tmp = tempfile.NamedTemporaryFile(delete=False)
-tmp.close()
-os.unlink(tmp.name)
-os.rename(sys.executable, tmp.name)
-ctypes.windll.kernel32.MoveFileExW(tmp.name, None, MOVEFILE_DELAY_UNTIL_REBOOT)
+    compiler.link_executable([os.path.join(build_dir, 'python.obj')], 'python', output_dir=build_dir, libraries=linkLibs, library_dirs=library_dirs)
 
-os.rename(os.path.join(build_dir, 'python.exe'), interpreter_path)
+    # Replace running interpreter by moving current version to a temp file, then marking it for deletion.
+    interpreter_path = sys.executable
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp.close()
+    os.unlink(tmp.name)
+    os.rename(sys.executable, tmp.name)
+    ctypes.windll.kernel32.MoveFileExW(tmp.name, None, MOVEFILE_DELAY_UNTIL_REBOOT)
 
-with open(os.path.join(sysconfig.get_config_var('srcdir'), 'link.json'), 'w') as f:
-    json.dump({
-        'include_dirs': include_dirs,
-        'macros': macros,
-        'libraries': linkLibs,
-        'library_dirs': library_dirs
-    }, f)
+    os.rename(os.path.join(build_dir, 'python.exe'), interpreter_path)
+
+    with open(os.path.join(sysconfig.get_config_var('srcdir'), 'link.json'), 'w') as f:
+        json.dump({
+            'include_dirs': include_dirs,
+            'macros': macros,
+            'libraries': linkLibs,
+            'library_dirs': library_dirs
+        }, f)
+
+    sys.path = initial_sys_path
+
+
+if __name__ == '__main__':
+    run_rebuild()
