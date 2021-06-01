@@ -10,6 +10,26 @@ Our immediate goals are:
 * Windows: Reenable Windows 7 support (because why not).
 * LTO linking on Windows (performance and deployment size)
 
+Installation
+============
+
+Currently, you have to build this from source code. It is questionable if deploying
+binaries makes sense, as you will have to compile from source code everything else
+that is installed, and the ``python.exe`` will be self-modifying with pip installs.
+
+Use the following command in the root of a Nuitka-Python checkout:
+
+.. code:: sh
+
+    PCbuild\build.bat -e -p x64
+
+This produces a Python install in the ``PCbuild/amd64/python`` folder. This doesn't
+have pip, but you add it with the following command:
+
+    PCbuild\amd64\python -m ensurepip
+
+This will download and install pip and setuptools. Nuitka-Python supports these with
+differences to standard CPython that make it essentially always compile from source.
 
 Copyright and License Information
 ---------------------------------
