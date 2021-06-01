@@ -26,6 +26,8 @@ Use the following command in the root of a Nuitka-Python checkout:
 This produces a Python install in the ``PCbuild/amd64/python`` folder. This doesn't
 have pip, but you add it with the following command:
 
+.. code:: sh
+
     PCbuild\amd64\python -m ensurepip
 
 This will download and install pip and setuptools. Nuitka-Python supports these with
