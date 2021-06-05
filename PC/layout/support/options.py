@@ -59,7 +59,7 @@ PRESETS = {
             "dev",
             "tools",
             "pip",
-            "stable",
+            # XXX: Disabled for static. "stable",
             "distutils",
             "venv",
             "props",

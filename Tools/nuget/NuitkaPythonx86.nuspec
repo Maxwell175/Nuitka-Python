@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>pythonx86</id>
-    <title>Python (32-bit)</title>
-    <authors>Python Software Foundation</authors>
+    <id>NuitkaPythonx86</id>
+    <title>Nuitka-Python (32-bit)</title>
     <version>0.0.0.0</version>
+    <authors>Nuitka Organization contributors</authors>
     <license type="file">tools\LICENSE.txt</license>
-    <projectUrl>https://www.python.org/</projectUrl>
+    <projectUrl>https://github.com/Nuitka/Nuitka-Python</projectUrl>
     <description>Installs 32-bit Python for use in build scenarios.</description>
     <iconUrl>https://www.python.org/static/favicon.ico</iconUrl>
-    <tags>python</tags>
+    <tags>nuitkapython</tags>
   </metadata>
   <files>
     <file src="**\*" exclude="python.props" target="tools" />

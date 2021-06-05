@@ -96,7 +96,7 @@ def run_rebuild():
     # Start with the libs needed for a base interpreter.
     linkLibs = ['advapi32', 'shell32', 'ole32', 'oleaut32', 'kernel32', 'user32', 'gdi32', 'winspool', 'comdlg32', 'uuid', 'odbc32', 'odbccp32', 'shlwapi', 'ws2_32', 'version', 'libssl', 'libcrypto', 'tcl86t', 'tk86t', 'Crypt32', 'Iphlpapi', 'msi', 'Rpcrt4', 'Cabinet', 'winmm']
 
-    library_dirs = [sysconfig.get_config_var('srcdir'), os.path.join(sysconfig.get_config_var('srcdir'), 'libs')]
+    library_dirs = [sysconfig.get_config_var('srcdir'), os.path.join(sysconfig.get_config_var('srcdir'), 'libs'), os.path.join(sysconfig.get_config_var('srcdir'), 'tcl')]
 
     # Scrape all available libs from the libs directory. We will let the linker worry about filtering out extra symbols.
     for file in glob.glob(os.path.join(sysconfig.get_config_var('srcdir'), 'libs', '*.lib')):

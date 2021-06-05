@@ -120,6 +120,9 @@ def get_tcltk_lib(ns):
 
     for dest, src in rglob(Path(tcl_lib).parent, "**/*"):
         yield "tcl/{}".format(dest), src
+    
+    for dest, src in rglob(Path(tcl_lib).parent.parent.joinpath('bin'), "*.dll"):
+        yield dest, src
 
 
 def get_layout(ns):
@@ -138,10 +141,10 @@ def get_layout(ns):
             pdb = src.with_suffix(".pdb")
             if pdb.is_file():
                 yield dest + n + ".pdb", pdb
-        if ns.include_dev:
-            lib = src.with_suffix(".lib")
-            if lib.is_file():
-                yield "libs/" + n + ".lib", lib
+        #if ns.include_dev:
+        #    lib = src.with_suffix(".lib")
+        #    if lib.is_file():
+        #        yield "libs/" + n + ".lib", lib
 
     if ns.include_appxmanifest:
         yield from in_build("python_uwp.exe", new_name="python{}".format(VER_DOT))
@@ -153,7 +156,8 @@ def get_layout(ns):
         yield from in_build("python.exe", new_name="python")
         yield from in_build("pythonw.exe", new_name="pythonw")
 
-    yield from in_build(PYTHON_DLL_NAME)
+    yield from in_build(PYTHON_DLL_NAME.replace(".dll", ".lib"))
+    yield Path("python.c"), ns.source / "Programs" / "python.c"
 
     if ns.include_launchers and ns.include_appxmanifest:
         if ns.include_pip:
@@ -210,7 +214,19 @@ def get_layout(ns):
         yield PYTHON_PTH_NAME, ns.temp / PYTHON_PTH_NAME
 
     if ns.include_dev:
-
+        for dest, src in rglob(ns.build, ("*.lib",)):
+            if src.stem.endswith("_d") != bool(ns.debug) and src not in REQUIRED_DLLS:
+                continue
+            if src in EXCLUDE_FROM_PYDS and src not in FileNameSet('python39.lib'):
+                continue
+            if src in TEST_PYDS_ONLY and not ns.include_tests:
+                continue
+            if src in TCLTK_PYDS_ONLY and not ns.include_tcltk:
+                continue
+            if src in FileNameSet('python3.lib', 'python.lib', 'pythonw.lib') and src not in FileNameSet('python39.lib'):
+                continue
+            yield "libs/{}".format(dest), src
+            
         for dest, src in rglob(ns.source / "Include", "**/*.h"):
             yield "include/{}".format(dest), src
         src = ns.source / "PC" / "pyconfig.h"
