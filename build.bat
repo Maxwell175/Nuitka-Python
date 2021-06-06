@@ -12,7 +12,7 @@ rem Install with nuget into a build folder
 
 rem Move the standalone build result to "output". TODO: Version number could be queried here
 rem from the Python binary built, or much rather we do not use one in the nuget build at all.
-xcopy nuget-result\python.3.9.5\tools output
+xcopy /i /q /s /y nuget-result\python.3.9.5\tools output
 
 echo "Ok, Nuitka Python now lives in output folder"
 
