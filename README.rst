@@ -17,14 +17,15 @@ Currently, you have to build this from source code. It is questionable if deploy
 binaries makes sense, as you will have to compile from source code everything else
 that is installed, and the ``python.exe`` will be self-modifying with pip installs.
 
-Use the following command in the root of a Nuitka-Python checkout:
+Use the following command in the root of a Nuitka-Python repository checkout:
 
 .. code:: sh
 
-    PCbuild\build.bat -e -p x64
+    build.bat -x64
 
-This produces a Python install in the ``PCbuild/amd64/python`` folder. This doesn't
-have pip, but you add it with the following command:
+This produces a Python install in the ``output`` folder. It has a pip, not not
+wheel.
+
 
     PCbuild\amd64\python -m ensurepip
 
