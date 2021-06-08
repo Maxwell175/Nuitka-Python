@@ -177,7 +177,7 @@ inline void Py_InitStaticModules() {
 
     compiler.compile(['python.c'], output_dir=build_dir, include_dirs=include_dirs, macros=macros)
 
-    compiler.link_executable([os.path.join(build_dir, 'python.obj')], 'python', output_dir=build_dir, libraries=linkLibs, library_dirs=library_dirs)
+    compiler.link_executable([os.path.join(build_dir, 'python.obj')], 'python', output_dir=build_dir, libraries=linkLibs, library_dirs=library_dirs, extra_preargs=["/LTCG", "/USEPROFILE:PGD=python.pgd"])
 
     # Replace running interpreter by moving current version to a temp file, then marking it for deletion.
     interpreter_path = sys.executable
