@@ -192,6 +192,7 @@ public override bool Execute() {
     <_SignCommand Condition="Exists($(SdkBinPath)) and '$(SigningCertificate)' != '' and $(SupportSigning)">"$(SdkBinPath)\signtool.exe" sign /a /n "$(SigningCertificate)" /fd sha256 /tr http://timestamp.digicert.com/ /td sha256 /d "Python $(PythonVersion)"</_SignCommand>
     <_SignCommand Condition="Exists($(SdkBinPath)) and '$(SigningCertificateSha1)' != '' and $(SupportSigning)">"$(SdkBinPath)\signtool.exe" sign /a /sha1 "$(SigningCertificateSha1)" /fd sha256 /tr http://timestamp.digicert.com/ /td sha256 /d "Python $(PythonVersion)"</_SignCommand>
     <_MakeCatCommand Condition="Exists($(SdkBinPath))">"$(SdkBinPath)\makecat.exe"</_MakeCatCommand>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
 
   <Target Name="_SignBuild" AfterTargets="AfterBuild" Condition="'$(_SignCommand)' != '' and $(SupportSigning)">
