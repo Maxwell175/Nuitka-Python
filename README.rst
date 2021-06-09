@@ -27,6 +27,8 @@ This produces a Python install in the ``output`` folder. It has a pip, not not
 wheel.
 
 
+.. code:: sh
+
     PCbuild\amd64\python -m ensurepip
 
 This will download and install pip and setuptools. Nuitka-Python supports these with
