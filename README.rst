@@ -29,7 +29,7 @@ wheel.
 
 .. code:: sh
 
-    PCbuild\amd64\python -m ensurepip
+    output\python -m ensurepip
 
 This will download and install pip and setuptools. Nuitka-Python supports these with
 differences to standard CPython that make it essentially always compile from source.
