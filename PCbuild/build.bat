@@ -56,7 +56,7 @@ exit /b 127
 :Run
 setlocal
 set platf=x64
-set conf=Release
+set conf=PGUpdate
 set target=Build
 set dir=%~dp0
 set parallel=/m
@@ -98,6 +98,16 @@ if "%IncludeSSL%"=="" set IncludeSSL=true
 if "%IncludeTkinter%"=="" set IncludeTkinter=true
 
 if "%IncludeExternals%"=="true" call "%dir%get_externals.bat"
+
+if "%platf%"=="x64" set PlatformDir=amd64
+if "%platf%"=="x32" set PlatformDir=win32
+if "%platf%"=="Win32" set PlatformDir=win32
+
+if "%conf%" EQU "Release" if NOT "%do_pgo%" EQU "true" (
+	SETLOCAL ENABLEEXTENSIONS
+	mkdir "%dir%\%PlatformDir%
+	copy /B /Y "%dir%\..\externals\python.pgd\python.pgd" "%dir%\%PlatformDir%\python.pgd"
+)
 
 if "%do_pgo%" EQU "true" if "%platf%" EQU "x64" (
     if "%PROCESSOR_ARCHITEW6432%" NEQ "AMD64" if "%PROCESSOR_ARCHITECTURE%" NEQ "AMD64" (

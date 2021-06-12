@@ -1,20 +1,22 @@
 rem Go home.
 cd %~dp0
 
-set PGO_OPT=--pgo
+set PGO_OPT=
 set ARCH_OPT=-x64
+set REBUILD_OPT=
 
 :CheckOpts
-if "%~1" EQU "-x86" (set BUILDX86=-x86) && shift && goto CheckOpts
+if "%~1" EQU "-x86" (set ARCH_OPT=-x86) && shift && goto CheckOpts
 if "%~1" EQU "-x64" (set ARCH_OPT=-x64) && shift && goto CheckOpts
-if "%~1" EQU "--disable-pgo" (set PGO_OPT=) && shift && goto CheckOpts
+if "%~1" EQU "--pgo" (set PGO_OPT=--pgo) && shift && goto CheckOpts
+if "%~1" EQU "-r" (set REBUILD_OPT=-r) && shift && goto CheckOpts
 
 
 rem Remove old output
 del /S /Q output nuget-result >nul
 
 rem Build with nuget, it solves the directory structure for us.
-call .\Tools\nuget\build.bat -x64 %ARCH_OPT% %PGO_OPT%
+call .\Tools\nuget\build.bat %ARCH_OPT% %PGO_OPT% %REBUILD_OPT%
 
 rem Install with nuget into a build folder
 .\externals\windows-installer\nuget\nuget.exe install python -Source %~dp0\PCbuild\amd64 -OutputDirectory nuget-result
