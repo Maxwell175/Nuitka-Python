@@ -23,16 +23,15 @@ Use the following command in the root of a Nuitka-Python repository checkout:
 
     build.bat -x64
 
-This produces a Python install in the ``output`` folder. It has a pip, not not
-wheel.
+This produces a Python install in the ``output`` folder. It has a ``pip`` and
+``setuptools``, but not wheel out of the box. Nuitka-Python supports these with
+differences to standard CPython that make it essentially always compile from
+source.
 
+The ``output`` folder can be moved freely, even to other machines. When you
+install via ``python.exe -m pip`` however, it will be self-modifying the
+``python.exe`` to include the newly installed packages with static linking.
 
-.. code:: sh
-
-    output\python -m ensurepip
-
-This will download and install pip and setuptools. Nuitka-Python supports these with
-differences to standard CPython that make it essentially always compile from source.
 
 Copyright and License Information
 ---------------------------------
