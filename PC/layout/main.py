@@ -120,7 +120,7 @@ def get_tcltk_lib(ns):
 
     for dest, src in rglob(Path(tcl_lib).parent, "**/*"):
         yield "tcl/{}".format(dest), src
-    
+
     for dest, src in rglob(Path(tcl_lib).parent.parent.joinpath('bin'), "*.dll"):
         yield dest, src
 
@@ -197,7 +197,7 @@ def get_layout(ns):
         for dest, src in get_lib_layout(ns):
             yield "Lib/{}".format(dest), src
 
-        if ns.include_venv:
+        if ns.include_venv and False:
             yield from in_build("venvlauncher.exe", "Lib/venv/scripts/nt/", "python")
             yield from in_build("venvwlauncher.exe", "Lib/venv/scripts/nt/", "pythonw")
 
@@ -227,7 +227,7 @@ def get_layout(ns):
             if src in FileNameSet('python3.lib', 'python.lib', 'pythonw.lib') and src not in FileNameSet('python39.lib'):
                 continue
             yield "libs/{}".format(dest), src
-            
+
         for dest, src in rglob(ns.source / "Include", "**/*.h"):
             yield "include/{}".format(dest), src
         src = ns.source / "PC" / "pyconfig.h"
