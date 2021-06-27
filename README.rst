@@ -1,21 +1,24 @@
 This is Nuitka-Python
 =====================
 
-This is a fork of CPython, that is not called CPython, but Nuitka-Python and diverges
-in various ways.
+This is a fork of CPython, that is called Nuitka-Python, and diverges in various
+ways from the original.
 
 Our immediate goals are:
 
-* Windows: Add static linking (performance and lock down).
-* Windows: Reenable Windows 7 support (because why not).
-* LTO linking on Windows (performance and deployment size)
+[x] Windows: Add static linking (performance and lock down)
+[x] Windows: Reenable Windows 7 support (because why not)
+[x] LTO linking on Windows (performance and deployment size)
+[ ] Automatic patches for packages built from pip
+[ ] Support all major packages and provide upstream guidance.
 
 Installation
 ============
 
-Currently, you have to build this from source code. It is questionable if deploying
-binaries makes sense, as you will have to compile from source code everything else
-that is installed, and the ``python.exe`` will be self-modifying with pip installs.
+Currently, you have to build Nuitka-Python from source code. It is questionable
+if deploying binaries makes sense, as you will have to compile from source code
+everything else that is installed afterwards, and the ``python.exe`` will be
+self-modifying with pip installs.
 
 Use the following command in the root of a Nuitka-Python repository checkout:
 
@@ -23,10 +26,12 @@ Use the following command in the root of a Nuitka-Python repository checkout:
 
     build.bat -x64
 
-This produces a Python install in the ``output`` folder. It has a ``pip`` and
-``setuptools``, but not wheel out of the box. Nuitka-Python supports these with
-differences to standard CPython that make it essentially always compile from
-source.
+This produces a portable Python installation in the ``output`` folder. It has a
+``pip`` and ``setuptools``, but not ``wheel`` out of the box. Nuitka-Python
+supports these all of these though, with differences to standard CPython that
+make it essentially always compile from source. Esp. the architecture of
+Nuitka-Python will be different, so binary wheels uploaded to PyPI cannot be
+installed, which will make it fallback to compiling from source.
 
 The ``output`` folder can be moved freely, even to other machines. When you
 install via ``python.exe -m pip`` however, it will be self-modifying the
