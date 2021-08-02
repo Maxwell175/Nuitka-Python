@@ -6,11 +6,11 @@ ways from the original.
 
 Our immediate goals are:
 
-[x] Windows: Add static linking (performance and lock down)
-[x] Windows: Reenable Windows 7 support (because why not)
-[x] LTO linking on Windows (performance and deployment size)
-[ ] Automatic patches for packages built from pip
-[ ] Support all major packages and provide upstream guidance.
+- [x] Windows: Add static linking (performance and lock down)
+- [x] Windows: Reenable Windows 7 support (because why not)
+- [x] LTO linking on Windows (performance and deployment size)
+- [ ] Automatic patches for packages built from pip
+- [ ] Support all major packages and provide upstream guidance.
 
 Installation
 ============
@@ -28,7 +28,7 @@ Use the following command in the root of a Nuitka-Python repository checkout:
 
 This produces a portable Python installation in the ``output`` folder. It has a
 ``pip`` and ``setuptools``, but not ``wheel`` out of the box. Nuitka-Python
-supports these all of these though, with differences to standard CPython that
+supports all of these though, with differences to standard CPython that
 make it essentially always compile from source. Esp. the architecture of
 Nuitka-Python will be different, so binary wheels uploaded to PyPI cannot be
 installed, which will make it fallback to compiling from source.
