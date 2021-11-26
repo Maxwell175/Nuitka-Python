@@ -3,16 +3,13 @@ import os
 import importlib
 import json
 import fnmatch
-import tempfile
 import __np__
 
-# Portability:
-if str is bytes:
-    from urllib import (  # pylint: disable=I0021,import-error,no-name-in-module
-        urlretrieve,
-    )
-else:
-    from urllib.request import urlretrieve
+def urlretrieve(url, output_filename):
+    local_filename = __np__.download_file(url, os.path.dirname(output_filename))
+
+    return local_filename
+
 
 # For Nuitka utils source compatibility
 def _getPythonVersion():
@@ -38,7 +35,7 @@ def importFileAsModule(modulename, filename):
     """
     assert os.path.exists(filename), filename
 
-    def importFilePy2(modulename, filename):
+    def _importFilePy2(modulename, filename):
         """Import a file for Python version 2."""
         import imp
 
@@ -56,43 +53,53 @@ def importFileAsModule(modulename, filename):
     def _importFilePy3NewWay(modulename, filename):
         """Import a file for Python versions 3.5+."""
         import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
+        import importlib.machinery
 
-        script_spec = importlib.util.spec_from_loader(
+        build_script_spec = importlib.util.spec_from_loader(
             modulename,
-            importlib.machinery.SourceFileLoader(modulename, filename)
+            importlib.machinery.SourceFileLoader(modulename,
+                                                 filename)
         )
-        script_module = importlib.util.module_from_spec(script_spec)
-        return script_module
+        build_script_module = importlib.util.module_from_spec(build_script_spec)
+        build_script_spec.loader.exec_module(build_script_module)
+        return build_script_module
 
     if python_version < 0x300:
-        return importFilePy2(filename)
+        return _importFilePy2(modulename, filename)
     elif python_version < 0x350:
-        return _importFilePy3OldWay(filename)
+        return _importFilePy3OldWay(modulename, filename)
     else:
-        return _importFilePy3NewWay(filename)
+        return _importFilePy3NewWay(modulename, filename)
 
 
 PACKAGE_BASE_URL = os.environ.get("NUITKA_PYTHON_PACKAGE_URL", "https://raw.githubusercontent.com/Nuitka/Nuitka-Python-packages/master")
 
 def getPackageUrl(section, name):
-    if section == "packages":
-        if os.name == "nt":
-            if str is bytes:
-                section = "packages/np27-windows"
-            else:
-                section = "packages/np3-windows"
+    if os.name == "nt":
+        if str is bytes:
+            section += "/np27-windows"
         else:
-            if str is bytes:
-                section = "packages/np27-linux"
-            else:
-                section = "packages/np3-linux"
+            section += "/np3-windows"
+    else:
+        if str is bytes:
+            section += "/np27-linux"
+        else:
+            section += "/np3-linux"
 
     return "{PACKAGE_BASE_URL}/{section}/{name}".format(PACKAGE_BASE_URL=PACKAGE_BASE_URL, section=section, name=name)
 
-real_pip_dir = os.path.join(os.path.dirname(__file__), 'site-packages')
-sys.path.insert(0, real_pip_dir)
-import pip as _pip
-del sys.path[0]
+def getPackageJson(section, name):
+    package_dir_url = getPackageUrl(section, name)
+    with __np__.TemporaryDirectory() as temp_dir:
+        data_filename = urlretrieve("{package_dir_url}/index.json".format(**locals()), os.path.join(temp_dir, "index.json"))
+
+        with open(data_filename) as data_file:
+            return json.loads(data_file.read())
+
+
+_pip = importlib.import_module('site-packages.pip')
+
+_pip.__name__ = 'pip'
 
 sys.modules['pip'] = _pip
 
@@ -100,9 +107,9 @@ import pip._internal.req.req_install
 
 
 def install_build_tool(name):
-    package_dir_url = "{PACKAGE_BASE_URL}/build_tools/{name}".format(PACKAGE_BASE_URL=PACKAGE_BASE_URL, **locals())
-    data = urllib.request.urlopen("{package_dir_url}/index.json".format(**locals())).read()
-    package_index = json.loads(data)
+    package_index = getPackageJson("build_tools", name)
+    package_dir_url = getPackageUrl("build_tools", name)
+
     if 'build_tools' in package_index:
         for tool in package_index['build_tools']:
             install_build_tool(tool)
@@ -116,15 +123,15 @@ def install_build_tool(name):
 
     print("Setting up build tool {name}...".format(**locals()))
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with __np__.TemporaryDirectory() as temp_dir:
         for file in package_index["files"]:
             urlretrieve("{package_dir_url}/{file}".format(**locals()), os.path.join(temp_dir, file))
 
-        build_script_module_name = "build_script{os.path.basename(temp_dir)}.{name}".format(**locals())
+        build_script_module_name = "build_script" + os.path.basename(temp_dir) + "_" + name
         initcwd = os.getcwd()
         initenviron = dict(os.environ)
 
-        build_script_module = importFileAsModule(os.path.join(temp_dir, package_index["build_script"]))
+        build_script_module = importFileAsModule(build_script_module_name, os.path.join(temp_dir, package_index["build_script"]))
         try:
             build_script_module.run(temp_dir)
         finally:
@@ -143,10 +150,9 @@ def install_build_tool(name):
 
 
 def install_dependency(name):
-    package_dir_url = getPackageUrl(section="dependencies", name=name)
+    package_index = getPackageJson("dependencies", name)
+    package_dir_url = getPackageUrl("dependencies", name)
 
-    data = urlretrieve("{package_dir_url}/index.json".format(**locals()))
-    package_index = json.loads(data)
     if 'build_tools' in package_index:
         for tool in package_index['build_tools']:
             install_build_tool(tool)
@@ -163,15 +169,15 @@ def install_dependency(name):
 
     print("Compiling dependency {name}...".format(**locals()))
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with __np__.TemporaryDirectory() as temp_dir:
         for file in package_index["files"]:
             urlretrieve("{package_dir_url}/{file}".format(**locals()), os.path.join(temp_dir, file))
 
-        build_script_module_name = "build_script{os.path.basename(temp_dir)}.{name}".format(**locals())
+        build_script_module_name = "build_script" + os.path.basename(temp_dir) + "_" + name
         initcwd = os.getcwd()
         initenviron = dict(os.environ)
 
-        build_script_module = importFileAsModule(os.path.join(temp_dir, package_index["build_script"]))
+        build_script_module = importFileAsModule(build_script_module_name, os.path.join(temp_dir, package_index["build_script"]))
         try:
             build_script_module.run(temp_dir)
         finally:
@@ -204,28 +210,17 @@ class InstallRequirement(_InstallRequirement):
             use_user_site=False,
             pycompile=True
     ):
-        package_dir_url = getPackageUrl(section="packages", name=self.name)
+        fallback = False
 
         try:
-            fallback = False
-            data_filename, _message = urlretrieve("{package_dir_url}/index.json".format(**locals()))
-
-            with open(data_filename) as data_file:
-                line = data_file.readline()
-
-                if line.startswith("404:"):
-                    # Fall back to using normal pip install.
-                    fallback = True
-        except EnvironmentError:
+            package_index = getPackageJson("packages", self.name)
+        except __np__.NoSuchURL:
             fallback = True
 
         if fallback:
-            print("FALLBACK for %s" % self.name)
+            __np__.my_print("FALLBACK to standard install for %s" % self.name)
 
             return _InstallRequirement.install(self, install_options, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
-
-        with open(data_filename) as data_file:
-            package_index = json.load(data_file)
 
         matched_source = None
         for source in package_index["scripts"]:
@@ -248,6 +243,7 @@ class InstallRequirement(_InstallRequirement):
                 install_dependency(dep)
 
         for file in matched_source["files"]:
+            package_dir_url = getPackageUrl("packages", self.name)
             urlretrieve("{package_dir_url}/{file}".format(**locals()), os.path.join(install_temp_dir, file))
 
         build_script_module_name = "build_script_{uid}.{name}".format(
@@ -257,7 +253,7 @@ class InstallRequirement(_InstallRequirement):
 
         initcwd = os.getcwd()
         initenviron = dict(os.environ)
-        build_script_module = importFileAsModule(os.path.join(install_temp_dir, matched_source["build_script"]))
+        build_script_module = importFileAsModule(build_script_module_name, os.path.join(install_temp_dir, matched_source["build_script"]))
 
         try:
             result = build_script_module.run(self, install_temp_dir, self.source_dir, install_options, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)

@@ -1,13 +1,13 @@
+from __future__ import print_function
+
 import glob
 import os
 import sys
 import re
 import subprocess
 import tempfile
-import urllib.request
 import sysconfig
 import shutil
-import pathlib
 import contextlib
 
 if str is not bytes:
@@ -17,24 +17,136 @@ if str is not bytes:
 DEPENDENCY_INSTALL_DIR = os.path.join(sysconfig.get_config_var('prefix'), 'dependency_libs')
 BUILD_TOOLS_INSTALL_DIR = os.path.join(sysconfig.get_config_var('prefix'), 'build_tools')
 
+def getEnableStyleCode(style):
+    if style == "pink":
+        style = "\033[95m"
+    elif style == "blue":
+        style = "\033[94m"
+    elif style == "green":
+        style = "\033[92m"
+    elif style == "yellow":
+        style = "\033[93m"
+    elif style == "red":
+        style = "\033[91m"
+    elif style == "bold":
+        style = "\033[1m"
+    elif style == "underline":
+        style = "\033[4m"
+    else:
+        style = None
 
-def download_file(url, destination) -> str:
-    with contextlib.closing(urllib.request.urlopen(url)) as fp:
-        if 'content-disposition' in fp.headers and 'filename=' in fp.headers['content-disposition']:
-            destination_file = os.path.join(destination, fp.headers['content-disposition'].split('filename=')[-1])
+    return style
+
+
+_enabled_ansi = False
+
+
+def _enableAnsi():
+    # singleton, pylint: disable=global-statement
+    global _enabled_ansi
+    if not _enabled_ansi:
+
+        # Only necessary on Windows, as a side effect of this, ANSI colors get enabled
+        # for the terminal and never deactivated, so we are free to use them after
+        # this.
+        if os.name == "nt":
+            os.system("")
+
+        _enabled_ansi = True
+
+
+def getDisableStyleCode():
+    return "\033[0m"
+
+
+def my_print(*args, **kwargs):
+    """Make sure we flush after every print.
+
+    Not even the "-u" option does more than that and this is easy enough.
+
+    Use kwarg style=[option] to print in a style listed below
+    """
+
+    file_output = kwargs.get("file", sys.stdout)
+    is_atty = file_output.isatty()
+
+    if "style" in kwargs:
+        style = kwargs["style"]
+        del kwargs["style"]
+
+        if "end" in kwargs:
+            end = kwargs["end"]
+            del kwargs["end"]
         else:
-            destination_file = os.path.join(destination, pathlib.Path(fp.url).name)
-        with open(destination_file, 'wb') as out_file:
-            bs = 1024*8
-            while True:
-                block = fp.read(bs)
-                if not block:
-                    break
-                out_file.write(block)
+            end = "\n"
+
+        if style is not None and is_atty:
+            enable_style = getEnableStyleCode(style)
+
+            if enable_style is None:
+                raise ValueError(
+                    "%r is an invalid value for keyword argument style" % style
+                )
+
+            _enableAnsi()
+
+            print(enable_style, end="", **kwargs)
+
+        print(*args, end=end, **kwargs)
+
+        if style is not None and is_atty:
+            print(getDisableStyleCode(), end="", **kwargs)
+    else:
+        print(*args, **kwargs)
+
+    # Flush the output.
+    file_output.flush()
+
+
+@contextlib.contextmanager
+def TemporaryDirectory():
+
+    dirpath = tempfile.mkdtemp()
+    yield dirpath
+    shutil.rmtree(dirpath)
+
+class NoSuchURL(Exception):
+    pass
+
+def download_file(url, destination):
+    if str is bytes:
+        from urllib2 import urlopen, HTTPError
+    else:
+        from urllib.request import urlopen, HTTPError
+
+    try:
+        my_print("Attempting to download '%s'." % url, style="blue")
+
+        with contextlib.closing(urlopen(url)) as fp:
+            if 'content-disposition' in fp.headers and 'filename=' in fp.headers['content-disposition']:
+                destination_file = os.path.join(destination, fp.headers['content-disposition'].split('filename=')[-1])
+            else:
+                destination_file = os.path.join(destination, os.path.basename(fp.geturl()))
+
+            with open(destination_file, 'wb') as out_file:
+                bs = 1024*8
+                while True:
+                    block = fp.read(bs)
+                    if not block:
+                        break
+                    out_file.write(block)
+
+    except HTTPError as e:
+        if e.code == 404:
+            raise NoSuchURL
+        else:
+            raise
+
+
     return destination_file
 
 
-def extract_archive(archive_file: str, destination=None) -> str:
+def extract_archive(archive_file, destination=None):
     if destination is None:
         destination = os.path.splitext(archive_file)[0]
         if destination.endswith('.tar'):
@@ -43,30 +155,30 @@ def extract_archive(archive_file: str, destination=None) -> str:
     return destination
 
 
-def download_extract(url: str, destination: str):
-    with tempfile.TemporaryDirectory() as dir:
+def download_extract(url, destination):
+    with TemporaryDirectory() as dir:
         downloaded_file = download_file(url, dir)
         extract_archive(downloaded_file, destination)
 
 
-def get_compiler_module() -> ModuleType:
+def get_compiler_module():
     __import__("distutils._msvccompiler")
     return sys.modules["distutils._msvccompiler"]
 
 
-def get_vs_version() -> float:
+def get_vs_version():
     compiler_module = get_compiler_module()
     platform = compiler_module.get_platform()
     vc_env = compiler_module._get_vc_env(compiler_module.PLAT_TO_VCVARS[platform])
     return float(vc_env.get('visualstudioversion'))
 
 
-def get_platform() -> str:
+def get_platform():
     compiler_module = get_compiler_module()
     return compiler_module.get_platform()
 
 
-def find_compiler_exe(exe: str) -> Type:
+def find_compiler_exe(exe):
     compiler_module = get_compiler_module()
     platform = compiler_module.get_platform()
     vc_env = compiler_module._get_vc_env(compiler_module.PLAT_TO_VCVARS[platform])
@@ -81,7 +193,7 @@ def setup_compiler_env():
     os.environ.update(vc_env)
 
 
-def run_with_output(*args: str) -> str:
+def run_with_output(*args):
     p = subprocess.Popen(args, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = ""
     for line in p.stdout:
@@ -94,19 +206,19 @@ def run_with_output(*args: str) -> str:
     return output
 
 
-def run_compiler_exe(exe: str, *args: str):
+def run_compiler_exe(exe, *args):
     return run_with_output(find_compiler_exe(exe), *args)
 
 
-def msbuild(*args: str) -> str:
+def msbuild(*args):
     return run_compiler_exe("msbuild.exe", *args)
 
 
-def nmake(*args: str) -> str:
+def nmake(*args):
     return run_compiler_exe("nmake.exe", *args)
 
 
-def install_files(dst: str, *files: str):
+def install_files(dst, *files):
     if not os.path.isdir(dst):
         os.makedirs(dst, exist_ok=True)
     for file_glob in files:
@@ -117,38 +229,38 @@ def install_files(dst: str, *files: str):
                 shutil.copy(file, os.path.join(dst, os.path.basename(file)))
 
 
-def install_dep_include(dependency_name: str, *files: str):
+def install_dep_include(dependency_name, *files):
     dependency_location = os.path.join(DEPENDENCY_INSTALL_DIR, dependency_name, 'include')
     install_files(dependency_location, *files)
 
 
-def install_dep_libs(dependency_name: str, *files: str):
+def install_dep_libs(dependency_name, *files):
     dependency_location = os.path.join(DEPENDENCY_INSTALL_DIR, dependency_name, 'libs')
     install_files(dependency_location, *files)
 
 
-def install_build_tool(tool_name: str, *files: str):
+def install_build_tool(tool_name, *files):
     dependency_location = os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name)
     install_files(dependency_location, *files)
 
 
-def find_build_tool_exe(tool_name: str, exe: str) -> str:
+def find_build_tool_exe(tool_name, exe):
     return glob.glob(os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name, exe))[0]
 
 
-def run_build_tool_exe(tool_name: str, exe: str, *args: str) -> str:
+def run_build_tool_exe(tool_name, exe, *args):
     return run_with_output(find_build_tool_exe(tool_name, exe), *args)
 
 
-def find_dep_include(dep_name: str) -> str:
+def find_dep_include(dep_name):
     return os.path.join(DEPENDENCY_INSTALL_DIR, dep_name, 'include')
 
 
-def find_dep_libs(dep_name: str) -> str:
+def find_dep_libs(dep_name):
     return os.path.join(DEPENDENCY_INSTALL_DIR, dep_name, 'libs')
 
 
-def prepend_to_file(file: str, prepend_str: str):
+def prepend_to_file(file, prepend_str):
     output = prepend_str
     with open(file, 'r') as f:
         output += f.read()
@@ -156,7 +268,7 @@ def prepend_to_file(file: str, prepend_str: str):
         f.write(output)
 
 
-def is_file_binary(file_path: str) -> bool:
+def is_file_binary(file_path):
     textchars = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
     with open(file_path, 'rb') as f:
         return bool(f.read(1024).translate(None, textchars))
@@ -177,7 +289,7 @@ def auto_patch_MD_MT(folder):
                 s2 = re.sub(r"cmake_minimum_required *\( *VERSION [0-9\.]+ *\)", "cmake_minimum_required(VERSION 3.15)", s2, flags=re.IGNORECASE)
                 s2 = re.sub(r"cmake_policy\(VERSION [0-9\.]+\)", "", s2, flags=re.IGNORECASE)
                 if s != s2:
-                    print("Fixed up file:", fpath)
+                    my_print("Fixed up file: %s" % fpath, style="blue")
                     with open(fpath, "w") as f:
                         f.write(s2)
             elif not is_file_binary(fpath):
@@ -186,7 +298,7 @@ def auto_patch_MD_MT(folder):
                 s2 = s.replace("/MD", "/MT")
                 s2 = s2.replace("-MD", "-MT")
                 if s != s2:
-                    print("Fixed up file:", fpath)
+                    my_print("Fixed up file: %s" % fpath, style="blue")
                     with open(fpath, "w") as f:
                         f.write(s2)
 
@@ -206,7 +318,7 @@ def auto_patch_Cython_memcpy(folder):
                 s2 = s.replace('"-Wl,-wrap,memcpy"',"")
 
                 if s != s2:
-                    print("Removed Cython config:", fpath)
+                    my_print("Removed Cython config: %s" % fpath, style="blue")
                     with open(fpath, "w") as f:
                         f.write(s2)
 
@@ -217,7 +329,7 @@ def auto_patch_Cython_memcpy(folder):
                 s2 = s.replace("-Wl,-wrap,memcpy", "")
 
                 if s != s2:
-                    print("Removed memcpy wrapper config:", fpath)
+                    my_print("Removed memcpy wrapper config: %s" % fpath, style="blue")
                     with open(fpath, "w") as f:
                         f.write(s2)
 
