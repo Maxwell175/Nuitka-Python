@@ -5,6 +5,14 @@ import json
 import fnmatch
 import __np__
 
+_pip = importlib.import_module('site-packages.pip')
+
+_pip.__name__ = 'pip'
+
+sys.modules['pip'] = _pip
+
+import pip._internal.req.req_install
+
 def urlretrieve(url, output_filename):
     local_filename = __np__.download_file(url, os.path.dirname(output_filename))
 
@@ -95,15 +103,6 @@ def getPackageJson(section, name):
 
         with open(data_filename) as data_file:
             return json.loads(data_file.read())
-
-
-_pip = importlib.import_module('site-packages.pip')
-
-_pip.__name__ = 'pip'
-
-sys.modules['pip'] = _pip
-
-import pip._internal.req.req_install
 
 
 def install_build_tool(name):
