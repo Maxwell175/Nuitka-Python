@@ -27,7 +27,7 @@ def run_rebuild():
 
     moduleImportStr = ""
     for pkg in pkgutil.iter_modules():
-        if '-' not in pkg.name:
+        if '-' not in pkg.name and not pkg.name.startswith("~"):
             moduleImportStr += "import " + pkg.name + "\n"
 
     finder = modulefinder.ModuleFinder()

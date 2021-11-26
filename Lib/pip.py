@@ -126,7 +126,7 @@ def install_build_tool(name):
         for file in package_index["files"]:
             urlretrieve("{package_dir_url}/{file}".format(**locals()), os.path.join(temp_dir, file))
 
-        build_script_module_name = "build_script" + os.path.basename(temp_dir) + "_" + name
+        build_script_module_name = "build_script_" + os.path.basename(temp_dir) + "_" + name
         initcwd = os.getcwd()
         initenviron = dict(os.environ)
 
@@ -172,7 +172,7 @@ def install_dependency(name):
         for file in package_index["files"]:
             urlretrieve("{package_dir_url}/{file}".format(**locals()), os.path.join(temp_dir, file))
 
-        build_script_module_name = "build_script" + os.path.basename(temp_dir) + "_" + name
+        build_script_module_name = "build_script_" + os.path.basename(temp_dir) + "_" + name
         initcwd = os.getcwd()
         initenviron = dict(os.environ)
 

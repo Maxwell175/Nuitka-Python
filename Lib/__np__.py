@@ -128,6 +128,10 @@ def download_file(url, destination):
             else:
                 destination_file = os.path.join(destination, os.path.basename(fp.geturl()))
 
+            parent_dir = os.path.dirname(destination_file)
+            if not os.path.exists(parent_dir):
+                os.makedirs(parent_dir)
+
             with open(destination_file, 'wb') as out_file:
                 bs = 1024*8
                 while True:
@@ -141,7 +145,6 @@ def download_file(url, destination):
             raise NoSuchURL
         else:
             raise
-
 
     return destination_file
 
