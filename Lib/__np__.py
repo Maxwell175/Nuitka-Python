@@ -113,6 +113,19 @@ def TemporaryDirectory():
 class NoSuchURL(Exception):
     pass
 
+
+def copytree(src, dst, symlinks=False, ignore=None):
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            copytree(s, d, symlinks, ignore)
+        else:
+            shutil.copy2(s, d)
+
+
 def download_file(url, destination):
     if str is bytes:
         from urllib2 import urlopen, HTTPError
@@ -124,7 +137,7 @@ def download_file(url, destination):
 
         with contextlib.closing(urlopen(url)) as fp:
             if 'content-disposition' in fp.headers and 'filename=' in fp.headers['content-disposition']:
-                destination_file = os.path.join(destination, fp.headers['content-disposition'].split('filename=')[-1])
+                destination_file = os.path.join(destination, fp.headers['content-disposition'].split('filename=')[-1].strip('"'))
             else:
                 destination_file = os.path.join(destination, os.path.basename(fp.geturl()))
 
@@ -221,34 +234,41 @@ def nmake(*args):
     return run_compiler_exe("nmake.exe", *args)
 
 
-def install_files(dst, *files):
+def install_files(dst, *files, base_dir=None):
     if not os.path.isdir(dst):
         os.makedirs(dst, exist_ok=True)
     for file_glob in files:
         for file in glob.glob(file_glob):
+            destination_filename = os.path.basename(file)
+            if base_dir is not None and file.startswith(base_dir):
+                destination_filename = file[len(base_dir) + 1:]
+            file_dst = os.path.join(dst, destination_filename)
+            if not os.path.exists(os.path.dirname(file_dst)):
+                os.makedirs(os.path.dirname(file_dst))
             if os.path.isdir(file):
-                shutil.copytree(file, os.path.join(dst, os.path.basename(file)))
+                copytree(file, os.path.join(dst, destination_filename))
             else:
-                shutil.copy(file, os.path.join(dst, os.path.basename(file)))
+                shutil.copy(file, os.path.join(dst, destination_filename))
 
 
-def install_dep_include(dependency_name, *files):
+def install_dep_include(dependency_name, *files, base_dir=None):
     dependency_location = os.path.join(DEPENDENCY_INSTALL_DIR, dependency_name, 'include')
-    install_files(dependency_location, *files)
+    install_files(dependency_location, *files, base_dir=base_dir)
 
 
-def install_dep_libs(dependency_name, *files):
+def install_dep_libs(dependency_name, *files, base_dir=None):
     dependency_location = os.path.join(DEPENDENCY_INSTALL_DIR, dependency_name, 'libs')
-    install_files(dependency_location, *files)
+    install_files(dependency_location, *files, base_dir=base_dir)
 
 
-def install_build_tool(tool_name, *files):
+def install_build_tool(tool_name, *files, base_dir=None):
     dependency_location = os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name)
-    install_files(dependency_location, *files)
+    install_files(dependency_location, *files, base_dir=base_dir)
 
 
 def find_build_tool_exe(tool_name, exe):
-    return glob.glob(os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name, exe))[0]
+    return (glob.glob(os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name, exe)) +
+            glob.glob(os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name, "bin", exe)))[0]
 
 
 def run_build_tool_exe(tool_name, exe, *args):

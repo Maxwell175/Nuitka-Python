@@ -273,6 +273,32 @@ class InstallRequirement(_InstallRequirement):
 
 pip._internal.req.req_install.InstallRequirement = InstallRequirement
 
+
+import pip._internal.index.package_finder
+from pip._internal.models.link import Link
+from pip._internal.models.candidate import InstallationCandidate
+
+_PackageFinder = pip._internal.index.package_finder.PackageFinder
+
+class PackageFinder(_PackageFinder):
+    def find_all_candidates(self, project_name):
+        base_candidates = _PackageFinder.find_all_candidates(self, project_name)
+
+        try:
+            package_index = getPackageJson("packages", project_name)
+        except __np__.NoSuchURL:
+            return base_candidates
+
+        package_sources = []
+        if "sources" in package_index:
+            for source in package_index["sources"]:
+                package_sources.append(InstallationCandidate(project_name, source["version"], Link(source["link"])))
+
+        return package_sources + base_candidates
+
+pip._internal.index.package_finder.PackageFinder = PackageFinder
+
+
 if __name__ == "__main__":
     import warnings
     # Work around the error reported in #9540, pending a proper fix.
