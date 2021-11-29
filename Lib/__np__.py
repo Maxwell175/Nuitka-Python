@@ -265,7 +265,7 @@ def install_dep_include(dependency_name, *files, base_dir=None):
 
 
 def install_dep_libs(dependency_name, *files, base_dir=None):
-    dependency_location = os.path.join(DEPENDENCY_INSTALL_DIR, dependency_name, 'libs')
+    dependency_location = os.path.join(DEPENDENCY_INSTALL_DIR, dependency_name, 'lib')
     install_files(dependency_location, *files, base_dir=base_dir)
 
 
@@ -288,7 +288,7 @@ def find_dep_include(dep_name):
 
 
 def find_dep_libs(dep_name):
-    return os.path.join(DEPENDENCY_INSTALL_DIR, dep_name, 'libs')
+    return os.path.join(DEPENDENCY_INSTALL_DIR, dep_name, 'lib')
 
 
 def prepend_to_file(file, prepend_str):
