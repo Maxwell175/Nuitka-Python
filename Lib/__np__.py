@@ -4,6 +4,7 @@ import glob
 import os
 import sys
 import re
+import stat
 import subprocess
 import tempfile
 import sysconfig
@@ -108,7 +109,13 @@ def TemporaryDirectory():
 
     dirpath = tempfile.mkdtemp()
     yield dirpath
-    shutil.rmtree(dirpath)
+    def delete_readonly_file(_, path, e):
+        if len(e) > 2 and e[1].errno == 13:
+            os.chmod(path, stat.S_IWRITE)
+            os.unlink(path)
+        else:
+            raise e[1]
+    shutil.rmtree(dirpath, onerror=delete_readonly_file)
 
 class NoSuchURL(Exception):
     pass
@@ -128,14 +135,15 @@ def copytree(src, dst, symlinks=False, ignore=None):
 
 def download_file(url, destination):
     if str is bytes:
-        from urllib2 import urlopen, HTTPError
+        from urllib2 import Request, urlopen, HTTPError
     else:
-        from urllib.request import urlopen, HTTPError
+        from urllib.request import Request, urlopen, HTTPError
 
     try:
         my_print("Attempting to download '%s'." % url, style="blue")
 
-        with contextlib.closing(urlopen(url)) as fp:
+        req = Request(url, headers={'User-Agent': "Nuitka-Python"})
+        with contextlib.closing(urlopen(req)) as fp:
             if 'content-disposition' in fp.headers and 'filename=' in fp.headers['content-disposition']:
                 destination_file = os.path.join(destination, fp.headers['content-disposition'].split('filename=')[-1].strip('"'))
             else:
@@ -300,30 +308,46 @@ def is_file_binary(file_path):
 def auto_patch_MD_MT(folder):
     for dname, dirs, files in os.walk(folder):
         for fname in files:
-            fpath = os.path.join(dname, fname)
-            if '.git' in fpath or '.svn' in fpath:
-                continue
+            try:
+                fpath = os.path.join(dname, fname)
+                if '.git' in fpath or '.svn' in fpath:
+                    continue
 
-            if fname.endswith('CMakeLists.txt'):
-                with open(fpath, 'r') as f:
-                    s = f.read()
-                s2 = s.replace("/MD", "/MT")
-                s2 = s2.replace("-MD", "-MT")
-                s2 = re.sub(r"cmake_minimum_required *\( *VERSION [0-9\.]+ *\)", "cmake_minimum_required(VERSION 3.15)", s2, flags=re.IGNORECASE)
-                s2 = re.sub(r"cmake_policy\(VERSION [0-9\.]+\)", "", s2, flags=re.IGNORECASE)
-                if s != s2:
-                    my_print("Fixed up file: %s" % fpath, style="blue")
-                    with open(fpath, "w") as f:
-                        f.write(s2)
-            elif not is_file_binary(fpath):
-                with open(fpath, 'r') as f:
-                    s = f.read()
-                s2 = s.replace("/MD", "/MT")
-                s2 = s2.replace("-MD", "-MT")
-                if s != s2:
-                    my_print("Fixed up file: %s" % fpath, style="blue")
-                    with open(fpath, "w") as f:
-                        f.write(s2)
+                if fname.endswith('CMakeLists.txt'):
+                    with open(fpath, 'r') as f:
+                        s = f.read()
+                    s2 = s.replace("/MD", "/MT")
+                    s2 = s2.replace("-MD", "-MT")
+                    s2 = re.sub(r"cmake_minimum_required *\( *VERSION [0-9\.]+ *\)",
+                                """cmake_minimum_required(VERSION 3.15)
+                    set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded)
+                    foreach(flag_var
+                                CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+                                CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
+                                CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+                                CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+                            if(${flag_var} MATCHES "/MD")
+                                string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+                            endif()
+                        endforeach(flag_var)
+                        
+                 """, s2, flags=re.IGNORECASE)
+                    s2 = re.sub(r"cmake_policy\(VERSION [0-9\.]+\)", "", s2, flags=re.IGNORECASE)
+                    if s != s2:
+                        my_print("Fixed up file: %s" % fpath, style="blue")
+                        with open(fpath, "w") as f:
+                            f.write(s2)
+                elif not is_file_binary(fpath):
+                    with open(fpath, 'r') as f:
+                        s = f.read()
+                    s2 = s.replace("/MD", "/MT")
+                    s2 = s2.replace("-MD", "-MT")
+                    if s != s2:
+                        my_print("Fixed up file: %s" % fpath, style="blue")
+                        with open(fpath, "w") as f:
+                            f.write(s2)
+            except:
+                continue
 
 
 def auto_patch_Cython_memcpy(folder):
