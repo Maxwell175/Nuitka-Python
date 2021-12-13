@@ -162,7 +162,7 @@ def _find_exe(exe, paths=None):
 # lighter-weight MSVC installs that do not include native 64-bit tools.
 PLAT_TO_VCVARS = {
     'win32' : 'x86',
-    'win-amd64' : 'x86_amd64',
+    'win-amd64' : 'x64',
     'win-arm32' : 'x86_arm',
     'win-arm64' : 'x86_arm64'
 }
