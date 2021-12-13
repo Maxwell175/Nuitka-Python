@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import distutils
 import distutils.ccompiler
-import modulefinder
 from distutils.sysconfig import get_config_var
 import sysconfig
 import json
@@ -25,17 +24,6 @@ def run_rebuild():
         if installDir not in path:
             del sys.path[i]
 
-    moduleImportStr = ""
-    for pkg in pkgutil.iter_modules():
-        if '-' not in pkg.name and not pkg.name.startswith("~"):
-            moduleImportStr += "import " + pkg.name + "\n"
-
-    finder = modulefinder.ModuleFinder()
-    stuff = ('py', "rb", modulefinder._PY_SOURCE)
-    fp = io.BytesIO(moduleImportStr.encode('utf-8'))
-    finder.load_module("moduleImports", fp, "moduleImports.py", stuff)
-
-
     foundLibs = {}
 
     compiler = distutils.ccompiler.new_compiler(verbose=5)
@@ -43,43 +31,15 @@ def run_rebuild():
 
     checkedLibs = set()
 
-    def findmodulelib(pathsToSearch, name, prefix=''):
-        for path in pathsToSearch:
-            if os.path.isfile(os.path.join(path, name + ".lib")):
-                foundLibs[prefix + name] = os.path.join(path, name + ".lib")
-                checkedLibs.add(os.path.join(path, name + ".lib"))
-                break
-            if os.path.isfile(os.path.join(path, name + get_config_var('EXT_SUFFIX'))):
-                foundLibs[prefix + name] = os.path.join(path, name + get_config_var('EXT_SUFFIX'))
-                checkedLibs.add(os.path.join(path, name + get_config_var('EXT_SUFFIX')))
-                break
-            if os.path.isfile(os.path.join(path, name + get_config_var('EXT_SUFFIX') + ".lib")):
-                foundLibs[prefix + name] = os.path.join(path, name + get_config_var('EXT_SUFFIX') + ".lib")
-                checkedLibs.add(os.path.join(path, name + get_config_var('EXT_SUFFIX') + ".lib"))
-                break
-
-    for importError in finder.import_errors:
-        pathsToSearch = sys.path + [os.path.join(installDir, 'libs')]
-        if importError.parent is not None:
-            pathsToSearch = importError.parent.__path__ + pathsToSearch
-        findmodulelib(pathsToSearch, importError.__name__, importError.parent.__name__ + "." if importError.parent else "")
-
-    for module in finder.modules.values():
-        pathsToSearch = sys.path + [os.path.join(installDir, 'libs')]
-        if module.__path__ is not None:
-            pathsToSearch = module.__path__ + pathsToSearch
-        findmodulelib(pathsToSearch, module.__name__)
-
-
     # Scan sys.path for any more lingering static libs.
-    for path in sys.path:
+    for path in sys.path + [os.path.join(sysconfig.get_config_var('srcdir'), 'libs')]:
         if path == installDir:
             continue
         for file in glob.glob(os.path.join(path, '**', '*.lib'), recursive=True):
             if file in checkedLibs:
                 continue
             initFunctions = [x.decode('ascii') for x in
-                             subprocess.check_output([compiler.dumpbin, '/all', file]).split(b"\r\n") if
+                             subprocess.check_output([compiler.dumpbin, '/linkermember', file]).split(b"\r\n") if
                              b'PyInit' in x]
             # If this lib has a PyInit function, we should link it in.
             if initFunctions:
@@ -112,6 +72,9 @@ def run_rebuild():
                 linkLibs += linkData['libraries']
                 library_dirs += [os.path.join(os.path.dirname(path), x) for x in linkData['library_dirs']]
 
+    linkLibs = list(set(linkLibs))
+    library_dirs = list(set(library_dirs))
+
     print("Generating interpreter sources...")
 
     staticinitheader = """#ifndef Py_STATICINIT_H
@@ -129,11 +92,11 @@ extern "C" {
 """
 
     for key, value in foundLibs.items():
-        initFunctions = [x.decode('ascii') for x in subprocess.check_output([compiler.dumpbin, '/all', value]).split(b"\r\n") if b'PyInit' in x]
+        initFunctions = [x.decode('ascii') for x in subprocess.check_output([compiler.dumpbin, '/linkermember', value]).split(b"\r\n") if b'PyInit' in x]
         if not initFunctions:
             print("Init not found!", key, value)
             continue
-        initFunction = [x for x in initFunctions[-1].split(' ') if len(x) > 6][-1]
+        initFunction = [x for x in [y for y in initFunctions if '$' not in y and '@' not in y and '?' not in y][-1].split(' ') if len(x) > 6][-1]
         staticinitheader += "	extern  PyObject* " + initFunction + "(void);\n"
 
 
@@ -146,10 +109,10 @@ inline void Py_InitStaticModules() {
 """
 
     for key, value in foundLibs.items():
-        initFunctions = [x.decode('ascii') for x in subprocess.check_output([compiler.dumpbin, '/all', value]).split(b"\r\n") if b'PyInit' in x]
+        initFunctions = [x.decode('ascii') for x in subprocess.check_output([compiler.dumpbin, '/linkermember', value]).split(b"\r\n") if b'PyInit' in x]
         if not initFunctions:
             continue
-        initFunction = [x for x in initFunctions[-1].split(' ') if len(x) > 6][-1]
+        initFunction = [x for x in [y for y in initFunctions if '$' not in y and '@' not in y and '?' not in y][-1].split(' ') if len(x) > 6][-1]
         staticinitheader += "	PyImport_AppendInittab(\"" + key + "\", " + initFunction + ");\n"
 
     staticinitheader += """
