@@ -268,7 +268,10 @@ class InstallRequirement(_InstallRequirement):
             os.environ.update(initenviron)
 
         if result:
-            return _InstallRequirement.install(self, install_options, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
+            _InstallRequirement.install(self, install_options, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
+
+        import rebuildpython
+        rebuildpython.run_rebuild()
 
 
 pip._internal.req.req_install.InstallRequirement = InstallRequirement
