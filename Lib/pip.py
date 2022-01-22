@@ -216,7 +216,7 @@ class InstallRequirement(_InstallRequirement):
         except __np__.NoSuchURL:
             fallback = True
 
-        if fallback:
+        if fallback or not self.source_dir:
             __np__.my_print("FALLBACK to standard install for %s" % self.name)
 
             return _InstallRequirement.install(self, install_options, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
@@ -277,8 +277,20 @@ pip._internal.req.req_install.InstallRequirement = InstallRequirement
 import pip._internal.index.package_finder
 from pip._internal.models.link import Link
 from pip._internal.models.candidate import InstallationCandidate
+from pip._internal import wheel_builder
 
 _PackageFinder = pip._internal.index.package_finder.PackageFinder
+
+
+def build_stub(
+    requirements,  # type: Iterable[InstallRequirement]
+    wheel_cache,  # type: WheelCache
+    verify,  # type: bool
+    build_options,  # type: List[str]
+    global_options,  # type: List[str]
+):
+    return [], requirements
+wheel_builder.build = build_stub
 
 class PackageFinder(_PackageFinder):
     def find_all_candidates(self, project_name):
