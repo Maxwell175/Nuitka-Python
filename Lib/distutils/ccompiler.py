@@ -1112,5 +1112,9 @@ def gen_lib_options (compiler, library_dirs, runtime_library_dirs, libraries):
                 compiler.warn("no library file corresponding to "
                               "'%s' found (skipping)" % lib)
         else:
-            lib_opts.append(compiler.library_option (lib))
+            lib_file = compiler.find_library_file(library_dirs, lib_name)
+            if lib_file is not None and lib_file.endswith('.a'):
+                lib_opts.append(lib_file)
+            else:
+                lib_opts.append(compiler.library_option(lib))
     return lib_opts

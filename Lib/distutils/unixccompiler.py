@@ -64,6 +64,13 @@ class UnixCCompiler(CCompiler):
 
     if sys.platform[:6] == "darwin":
         executables['ranlib'] = ["ranlib"]
+        
+    # Nuitka: Make sure to use the original settings
+    executables["compiler"] = sysconfig.get_config_var("CC")
+    executables["compiler_so"] = sysconfig.get_config_var("CC")
+    executables["compiler_cxx"] = sysconfig.get_config_var("CXX")
+    executables["linker_so"] = sysconfig.get_config_var("CC")
+    executables["linker_exe"] = sysconfig.get_config_var("CC")
 
     # Needed for the filename generation methods provided by the base
     # class, CCompiler.  NB. whoever instantiates/uses a particular
@@ -122,6 +129,7 @@ class UnixCCompiler(CCompiler):
     def create_static_lib(self, objects, output_libname,
                           output_dir=None, debug=0, target_lang=None):
         objects, output_dir = self._fix_object_args(objects, output_dir)
+        print(objects, output_libname)
 
         output_filename = \
             self.library_filename(output_libname, output_dir=output_dir)
@@ -302,6 +310,7 @@ class UnixCCompiler(CCompiler):
             dylib = os.path.join(dir, dylib_f)
             static = os.path.join(dir, static_f)
             xcode_stub = os.path.join(dir, xcode_stub_f)
+            plain = os.path.join(dir, lib)
 
             if sys.platform == 'darwin' and (
                 dir.startswith('/System/') or (
@@ -316,7 +325,9 @@ class UnixCCompiler(CCompiler):
             # data to go on: GCC seems to prefer the shared library, so I'm
             # assuming that *all* Unix C compilers do.  And of course I'm
             # ignoring even GCC's "-static" option.  So sue me.
-            if os.path.exists(dylib):
+            if os.path.exists(plain):
+                return plain
+            elif os.path.exists(dylib):
                 return dylib
             elif os.path.exists(xcode_stub):
                 return xcode_stub

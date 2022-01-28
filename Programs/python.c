@@ -18,6 +18,7 @@ wmain(int argc, wchar_t **argv)
 int
 main(int argc, char **argv)
 {
+    Py_InitStaticModules();
     return Py_BytesMain(argc, argv);
 }
 #endif
