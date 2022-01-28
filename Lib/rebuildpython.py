@@ -248,7 +248,8 @@ static inline void Py_InitStaticModules(void) {
             output_progname='python',
             output_dir=build_dir,
             libraries=link_libs,
-            library_dirs=library_dirs
+            library_dirs=library_dirs,
+            extra_preargs=sysconfig.get_config_var("LDFLAGS")
         )
 
         # Replace running interpreter by moving current version to a temp file, then deleting it. This

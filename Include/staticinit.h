@@ -36,7 +36,7 @@ extern "C" {
 }
 #endif // __cplusplus
 
-inline void Py_InitStaticModules() {
+static inline void Py_InitStaticModules() {
     PyImport_AppendInittab("unicodedata", PyInit_unicodedata);
     PyImport_AppendInittab("select", PyInit_select);
     PyImport_AppendInittab("_bz2", PyInit__bz2);
