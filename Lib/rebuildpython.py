@@ -21,6 +21,22 @@ def find_files(directory, pattern):
                 filename = os.path.join(root, basename)
                 yield filename
 
+
+def getPythonInitFunctions(filename):
+    if platform.system() == "Windows":
+        initFunctions = [x.decode('ascii') for x in
+                            subprocess.check_output([compiler.dumpbin, '/linkermember', filename]).split(b"\r\n") if
+                            b'init' if str is bytes else b'PyInit_' in x]
+    else:
+        functions = [x.decode('ascii').split(' ')[-1] for x in
+                            subprocess.check_output(['nm', file]).split(os.linesep.encode('ascii'))]
+        initFunctions = [x for x in functions if x.startswith('init' if str is bytes else 'PyInit_')]
+
+    initFunctions = [y for y in initFunctions if '$' not in y and '@' not in y and '?' not in y]
+
+    return initFunctions
+
+
 def run_rebuild():
     installDir = os.path.dirname(sys.executable)
 
@@ -37,7 +53,7 @@ def run_rebuild():
 
     compiler = distutils.ccompiler.new_compiler(verbose=5)
     compiler.set_executables(compiler=cc_config_var, compiler_so=cc_config_var, linker_exe=cc_config_var, compiler_cxx=cxx_config_var)
-    
+
     try:
         compiler.initialize()
     except AttributeError:
@@ -45,7 +61,7 @@ def run_rebuild():
 
     foundLibs = {}
     checkedLibs = set()
-    
+
     from distutils.sysconfig import get_config_var
     ext_suffix = get_config_var('EXT_SUFFIX')
 
@@ -58,21 +74,16 @@ def run_rebuild():
             if file in checkedLibs:
                 continue
 
-            _, filename = os.path.split(file)
+            filename_base = os.path.basename(filename)
 
-            if platform.system() == "Windows":
-                initFunctions = [x.decode('ascii') for x in
-                                 subprocess.check_output([compiler.dumpbin, '/linkermember', file]).split(b"\r\n") if
-                                 b'PyInit' in x]
-            else:
-                if not filename.startswith("lib") or file.endswith(sysconfig.get_config_var("LIBRARY")):
-                    continue
-                checkedLibs.add(file)
-                functions = [x.decode('ascii').split(' ')[-1] for x in
-                                 subprocess.check_output(['nm', file]).split(os.linesep.encode('ascii'))]
-                initFunctions = [x for x in functions if x.startswith('PyInit')]
+            if not filename_base.startswith("lib") or filename.endswith(sysconfig.get_config_var("LIBRARY")):
+                continue
 
-            # If this lib has a PyInit function, we should link it in.
+            checkedLibs.add(filename)
+
+            initFunctions = getPythonInitFunctions(file)
+
+            # If this lib has a Python init function, we should link it in.
             if initFunctions:
                 relativePath = os.path.relpath(file, path)
                 if 'site-packages' in relativePath:
@@ -98,7 +109,7 @@ def run_rebuild():
                     'uuid', 'odbc32', 'odbccp32', 'shlwapi', 'ws2_32', 'version', 'libssl', 'libcrypto', 'tcl86t',
                     'tk86t', 'Crypt32', 'Iphlpapi', 'msi', 'Rpcrt4', 'Cabinet', 'winmm']
     else:
-        link_libs = ['python3.9', 'm']
+        link_libs = ['m']
 
     if platform.system() == "Windows":
         library_dirs = [sysconfig.get_config_var('srcdir'), os.path.join(sysconfig.get_config_var('srcdir'), 'libs'),
@@ -139,25 +150,25 @@ extern "C" {
 #endif
 """
 
-    for key, value in foundLibs.items():
-        if platform.system() == "Windows":
-            initFunctions = [x.decode('ascii') for x in
-                             subprocess.check_output([compiler.dumpbin, '/linkermember', value]).split(b"\r\n") if
-                             b'PyInit' in x]
-        else:
-            functions = [x.decode('ascii').split(' ')[-1] for x in
-                         subprocess.check_output(['nm', value]).split(os.linesep.encode('ascii'))]
-            initFunctions = [x for x in functions if x.startswith('PyInit')]
-        initFunctions = [y for y in initFunctions if '$' not in y and '@' not in y and '?' not in y]
-        if not initFunctions:
-            print("Init not found!", key, value)
-            continue
-        if "PyInit_" + key.split(".")[-1] in initFunctions:
-            initFunction = "PyInit_" + key.split(".")[-1]
-        else:
-            initFunction = initFunctions[-1]
-        staticinitheader += "   extern  PyObject* " + initFunction + "(void);\n"
+    inittab_code = ""
 
+    for module_fullname, filename in foundLibs.items():
+        initFunctions = getPythonInitFunctions(filename)
+
+        if not initFunctions:
+            print("Init not found!", key, filename)
+            continue
+
+        module_basename = key.split(".")[-1]
+
+        module_initfunc_name = ("init" if str is bytes else "PyInit_" ) + module_basename
+
+        # We might have packages that rename their build functioons.
+        if module_initfunc_name not in initFunctions:
+            module_initfunc_name = initFunctions[-1]
+
+        staticinitheader += "   extern  PyObject* " + module_initfunc_name + "(void);\n"
+        inittab_code += "   PyImport_AppendInittab(\"" + key + "\", " + initFunction + ");\n"
 
     staticinitheader += """
 #ifdef __cplusplus
@@ -165,33 +176,13 @@ extern "C" {
 #endif // __cplusplus
 
 static inline void Py_InitStaticModules(void) {
-"""
-
-    for key, value in foundLibs.items():
-        if platform.system() == "Windows":
-            initFunctions = [x.decode('ascii') for x in
-                             subprocess.check_output([compiler.dumpbin, '/linkermember', value]).split(b"\r\n") if
-                             b'PyInit' in x]
-        else:
-            functions = [x.decode('ascii').split(' ')[-1] for x in
-                         subprocess.check_output(['nm', value]).split(os.linesep.encode('ascii'))]
-            initFunctions = [x for x in functions if x.startswith('PyInit')]
-        initFunctions = [y for y in initFunctions if '$' not in y and '@' not in y and '?' not in y]
-        if not initFunctions:
-            continue
-        if "PyInit_" + key.split(".")[-1] in initFunctions:
-            initFunction = "PyInit_" + key.split(".")[-1]
-        else:
-            initFunction = initFunctions[-1]
-        staticinitheader += "   PyImport_AppendInittab(\"" + key + "\", " + initFunction + ");\n"
-
-    staticinitheader += """
+%s
 }
 
 #endif
 
 #endif // !Py_STATICINIT_H
-"""
+""" % inittab_code
 
     with open(os.path.join(sysconfig.get_config_var('INCLUDEPY'), 'staticinit.h'), 'w') as f:
         f.write(staticinitheader)
@@ -228,7 +219,7 @@ static inline void Py_InitStaticModules(void) {
 
         os.rename(os.path.join(build_dir, 'python.exe'), interpreter_path)
     elif platform.system() == "Linux":
-        sysconfig_libs = ['python3.9']
+        sysconfig_libs = []
         sysconfig_lib_dirs = []
         for arg in ["-lm", "-pthread", "-lutil", "-ldl"] + sysconfig.get_config_var("LDFLAGS").split() + sysconfig.get_config_var("CFLAGS").split() + sysconfig.get_config_var('MODLIBS').split() + sysconfig.get_config_var('LIBS').split():
             if arg.startswith('-l'):
@@ -237,10 +228,10 @@ static inline void Py_InitStaticModules(void) {
             elif arg.startswith('-L'):
                 if arg[2:] not in sysconfig_lib_dirs:
                     sysconfig_lib_dirs.append(arg[2:])
-                    
+
         link_libs = sysconfig_libs + link_libs
         library_dirs = sysconfig_lib_dirs + library_dirs
-        
+
         compiler.compile([os.path.join(sysconfig.get_config_var('prefix'), 'python.c')], output_dir="/", include_dirs=include_dirs, macros=macros)
 
         compiler.link_executable(
