@@ -96,14 +96,14 @@ def run_rebuild():
             if file in checkedLibs:
                 continue
 
-            filename_base = os.path.basename(filename)
+            filename_base = os.path.basename(file)
 
-            if not filename_base.startswith("lib") or filename.endswith(
+            if not filename_base.startswith("lib") or filename_base.endswith(
                 sysconfig.get_config_var("LIBRARY")
             ):
                 continue
 
-            checkedLibs.add(filename)
+            checkedLibs.add(filename_base)
 
             initFunctions = getPythonInitFunctions(compiler, file)
 
@@ -287,7 +287,7 @@ static inline void Py_InitStaticModules(void) {
             [os.path.join(build_dir, "python.obj")],
             "python",
             output_dir=build_dir,
-            libraries=linkLibs,
+            libraries=link_libs,
             library_dirs=library_dirs,
             extra_preargs=["/LTCG", "/USEPROFILE:PGD=python.pgd"],
         )
@@ -319,6 +319,8 @@ static inline void Py_InitStaticModules(void) {
                     sysconfig_lib_dirs.append(arg[2:])
 
         link_libs = sysconfig_libs + link_libs
+        libpython_lib = [x for x in link_libs if os.path.basename(x).startswith('libpython') and x.endswith(".a")][0]
+        link_libs = [libpython_lib] + [x for x in link_libs if x != libpython_lib]
         library_dirs = sysconfig_lib_dirs + library_dirs
 
         compiler.compile(
