@@ -11,12 +11,13 @@ import sysconfig
 import shutil
 import contextlib
 
-if str is not bytes:
-    from typing import *
-    from types import ModuleType
+def getDependencyInstallDir():
+    import sysconfig
+    return os.path.join(sysconfig.get_config_var('prefix'), 'dependency_libs')
 
-DEPENDENCY_INSTALL_DIR = os.path.join(sysconfig.get_config_var('prefix'), 'dependency_libs')
-BUILD_TOOLS_INSTALL_DIR = os.path.join(sysconfig.get_config_var('prefix'), 'build_tools')
+def getToolsInstallDir():
+    import sysconfig
+    return os.path.join(sysconfig.get_config_var('prefix'), 'build_tools')
 
 def getEnableStyleCode(style):
     if style == "pink":
@@ -163,7 +164,7 @@ def download_file(url, destination):
 
     except HTTPError as e:
         if e.code == 404:
-            raise NoSuchURL
+            raise NoSuchURL(url)
         else:
             raise
 
@@ -217,8 +218,14 @@ def setup_compiler_env():
     os.environ.update(vc_env)
 
 
-def run_with_output(*args):
-    p = subprocess.Popen(args, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+def run_with_output(*args, **kwargs):
+    import subprocess
+
+    stdin = kwargs.pop("stdin", None)
+    assert not kwargs
+
+    p = subprocess.Popen(args, universal_newlines=True, stdin=stdin, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
     output = ""
     for line in p.stdout:
         sys.stdout.write(line)
@@ -260,39 +267,49 @@ def install_files(dst, *files, base_dir=None):
 
 
 def install_dep_include(dependency_name, *files, base_dir=None):
-    dependency_location = os.path.join(DEPENDENCY_INSTALL_DIR, dependency_name, 'include')
+    dependency_location = os.path.join(getDependencyInstallDir(), dependency_name, 'include')
     install_files(dependency_location, *files, base_dir=base_dir)
 
 
 def install_dep_libs(dependency_name, *files, base_dir=None):
-    dependency_location = os.path.join(DEPENDENCY_INSTALL_DIR, dependency_name, 'lib')
+    dependency_location = os.path.join(getDependencyInstallDir(), dependency_name, 'libs')
     install_files(dependency_location, *files, base_dir=base_dir)
 
 
 def install_build_tool(tool_name, *files, base_dir=None):
-    dependency_location = os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name)
+    dependency_location = os.path.join(getToolsInstallDir(), tool_name)
     install_files(dependency_location, *files, base_dir=base_dir)
 
 
 def find_build_tool_exe(tool_name, exe):
+    if os.name != "nt" and tool_name == "patch":
+        return "patch"
+
     return (glob.glob(os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name, exe)) +
             glob.glob(os.path.join(BUILD_TOOLS_INSTALL_DIR, tool_name, "bin", exe)))[0]
 
 
-def run_build_tool_exe(tool_name, exe, *args):
-    return run_with_output(find_build_tool_exe(tool_name, exe), *args)
+def run_build_tool_exe(tool_name, exe, *args, **kwargs):
+    return run_with_output(find_build_tool_exe(tool_name, exe), *args, **kwargs)
+
+
+def apply_patch(patch_file, directory):
+    """ Apply a patch file to a directory. """
+    my_print("Applying patch '%s' to '%s'" % (patch_file, directory))
+    with open(patch_file, "rb") as stdin:
+        run_build_tool_exe("patch", "patch.exe" if os.name=="nt" else "patch", "-d", directory, "-p", "1", "--verbose", stdin=stdin)
 
 
 def find_dep_root(dep_name):
-    return os.path.join(DEPENDENCY_INSTALL_DIR, dep_name)
+    return os.path.join(getDependencyInstallDir(), dep_name)
 
 
 def find_dep_include(dep_name):
-    return os.path.join(DEPENDENCY_INSTALL_DIR, dep_name, 'include')
+    return os.path.join(getDependencyInstallDir(), dep_name, 'include')
 
 
 def find_dep_libs(dep_name):
-    return os.path.join(DEPENDENCY_INSTALL_DIR, dep_name, 'lib')
+    return os.path.join(getDependencyInstallDir(), dep_name, 'libs')
 
 
 def prepend_to_file(file, prepend_str):
@@ -343,7 +360,7 @@ def auto_patch_MD_MT_file(fpath):
                 my_print("Fixed up file: %s" % fpath, style="blue")
                 with open(fpath, "w") as f:
                     f.write(s2)
-    except:
+    except Exception:
         pass
 
 
@@ -387,3 +404,22 @@ def auto_patch_Cython_memcpy(folder):
                     with open(fpath, "w") as f:
                         f.write(s2)
 
+
+def shall_link_statically(name):
+    import fnmatch
+
+    static_pattern = os.environ.get("NUITKA_PYTHON_STATIC_PATTERN")
+    if not static_pattern or not fnmatch.fnmatch(name, static_pattern):
+        return False
+
+    return True
+
+def write_linker_json(result_path, libraries, library_dirs, runtime_library_dirs, extra_args):
+    import json
+
+    with open(result_path + '.link.json', 'w') as f:
+        json.dump({
+            'libraries': libraries,
+            'library_dirs': library_dirs,
+            'runtime_library_dirs': runtime_library_dirs,
+            'extra_postargs': extra_args}, f)
