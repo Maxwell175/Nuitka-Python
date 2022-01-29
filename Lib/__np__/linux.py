@@ -15,23 +15,22 @@ def auto_patch_Cython_memcpy(folder):
     for dname, dirs, files in os.walk(folder):
         for fname in files:
             fpath = os.path.join(dname, fname)
-            if '.git' in fpath or '.svn' in fpath:
+            if ".git" in fpath or ".svn" in fpath:
                 continue
 
             # TODO: Probably unnecessary
-            if fname.endswith('.cc'):
-                with open(fpath, 'r') as f:
+            if fname.endswith(".cc"):
+                with open(fpath, "r") as f:
                     s = f.read()
-                s2 = s.replace('"-Wl,-wrap,memcpy"',"")
+                s2 = s.replace('"-Wl,-wrap,memcpy"', "")
 
                 if s != s2:
                     my_print("Removed Cython config: %s" % fpath, style="blue")
                     with open(fpath, "w") as f:
                         f.write(s2)
 
-
             if fname == "setup.py":
-                with open(fpath, 'r') as f:
+                with open(fpath, "r") as f:
                     s = f.read()
                 s2 = s.replace("-Wl,-wrap,memcpy", "")
 
