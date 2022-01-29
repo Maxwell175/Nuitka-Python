@@ -115,12 +115,12 @@ def run_rebuild():
                 dirpath, filename = os.path.split(relativePath)
                 if platform.system() != "Windows" and filename.startswith("lib"):
                     filename = filename[3:]
-                if filename.endswith(ext_suffix):
-                    filename = filename[: len(ext_suffix) * -1]
-                if filename.endswith(".lib"):
-                    filename = filename[:-4]
                 if filename.endswith(".a"):
                     filename = filename[:-2]
+                if filename.endswith(".lib"):
+                    filename = filename[:-4]
+                if filename.endswith(ext_suffix):
+                    filename = filename[: len(ext_suffix) * -1]
                 relativePath = (
                     dirpath.replace("\\", ".").replace("/", ".") + "." + filename
                 )
@@ -353,7 +353,7 @@ static inline void Py_InitStaticModules(void) {
         )
         tmp.close()
         os.unlink(tmp.name)
-        os.rename(sys.executable, tmp.name)
+        os.rename(interpreter_path, tmp.name)
         os.unlink(tmp.name)
 
         os.rename(os.path.join(build_dir, "python"), interpreter_path)
