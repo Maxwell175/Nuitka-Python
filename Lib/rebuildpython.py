@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import ctypes
 import sys
 import os
 import shutil
@@ -14,6 +15,7 @@ import platform
 
 MOVEFILE_DELAY_UNTIL_REBOOT = 4
 
+
 def find_files(directory, pattern):
     for root, dirs, files in os.walk(directory):
         for basename in files:
@@ -22,14 +24,14 @@ def find_files(directory, pattern):
                 yield filename
 
 
-def getPythonInitFunctions(filename):
+def getPythonInitFunctions(compiler, filename):
     if platform.system() == "Windows":
         initFunctions = [x.decode('ascii') for x in
-                            subprocess.check_output([compiler.dumpbin, '/linkermember', filename]).split(b"\r\n") if
-                            b'init' if str is bytes else b'PyInit_' in x]
+                         subprocess.check_output([compiler.dumpbin, '/linkermember', filename]).split(b"\r\n") if \
+                         (b'init' if str is bytes else b'PyInit_') in x]
     else:
         functions = [x.decode('ascii').split(' ')[-1] for x in
-                            subprocess.check_output(['nm', file]).split(os.linesep.encode('ascii'))]
+                     subprocess.check_output(['nm', filename]).split(os.linesep.encode('ascii'))]
         initFunctions = [x for x in functions if x.startswith('init' if str is bytes else 'PyInit_')]
 
     initFunctions = [y for y in initFunctions if '$' not in y and '@' not in y and '?' not in y]
@@ -52,7 +54,8 @@ def run_rebuild():
     os.environ["CXX"] = cxx_config_var
 
     compiler = distutils.ccompiler.new_compiler(verbose=5)
-    compiler.set_executables(compiler=cc_config_var, compiler_so=cc_config_var, linker_exe=cc_config_var, compiler_cxx=cxx_config_var)
+    compiler.set_executables(compiler=cc_config_var, compiler_so=cc_config_var, linker_exe=cc_config_var,
+                             compiler_cxx=cxx_config_var)
 
     try:
         compiler.initialize()
@@ -81,7 +84,7 @@ def run_rebuild():
 
             checkedLibs.add(filename)
 
-            initFunctions = getPythonInitFunctions(file)
+            initFunctions = getPythonInitFunctions(compiler, file)
 
             # If this lib has a Python init function, we should link it in.
             if initFunctions:
@@ -105,9 +108,9 @@ def run_rebuild():
 
     # Start with the libs needed for a base interpreter.
     if platform.system() == "Windows":
-        linkLibs = ['advapi32', 'shell32', 'ole32', 'oleaut32', 'kernel32', 'user32', 'gdi32', 'winspool', 'comdlg32',
-                    'uuid', 'odbc32', 'odbccp32', 'shlwapi', 'ws2_32', 'version', 'libssl', 'libcrypto', 'tcl86t',
-                    'tk86t', 'Crypt32', 'Iphlpapi', 'msi', 'Rpcrt4', 'Cabinet', 'winmm']
+        link_libs = ['advapi32', 'shell32', 'ole32', 'oleaut32', 'kernel32', 'user32', 'gdi32', 'winspool', 'comdlg32',
+                     'uuid', 'odbc32', 'odbccp32', 'shlwapi', 'ws2_32', 'version', 'libssl', 'libcrypto', 'tcl86t',
+                     'tk86t', 'Crypt32', 'Iphlpapi', 'msi', 'Rpcrt4', 'Cabinet', 'winmm']
     else:
         link_libs = ['m']
 
@@ -115,7 +118,8 @@ def run_rebuild():
         library_dirs = [sysconfig.get_config_var('srcdir'), os.path.join(sysconfig.get_config_var('srcdir'), 'libs'),
                         os.path.join(sysconfig.get_config_var('srcdir'), 'tcl')]
     else:
-        library_dirs = [sysconfig.get_config_var('prefix'), sysconfig.get_config_var('LIBDEST'), sysconfig.get_config_var('LIBDIR')]
+        library_dirs = [sysconfig.get_config_var('prefix'), sysconfig.get_config_var('LIBDEST'),
+                        sysconfig.get_config_var('LIBDIR')]
 
     # Scrape all available libs from the libs directory. We will let the linker worry about filtering out extra symbols.
     for file in find_files(sysconfig.get_config_var('prefix'), '*.lib' if platform.system() == "Windows" else '*.a'):
@@ -153,22 +157,22 @@ extern "C" {
     inittab_code = ""
 
     for module_fullname, filename in foundLibs.items():
-        initFunctions = getPythonInitFunctions(filename)
+        initFunctions = getPythonInitFunctions(compiler, filename)
 
         if not initFunctions:
-            print("Init not found!", key, filename)
+            print("Init not found!", module_fullname, filename)
             continue
 
-        module_basename = key.split(".")[-1]
+        module_basename = module_fullname.split(".")[-1]
 
-        module_initfunc_name = ("init" if str is bytes else "PyInit_" ) + module_basename
+        module_initfunc_name = ("init" if str is bytes else "PyInit_") + module_basename
 
         # We might have packages that rename their build functioons.
         if module_initfunc_name not in initFunctions:
             module_initfunc_name = initFunctions[-1]
 
         staticinitheader += "   extern  PyObject* " + module_initfunc_name + "(void);\n"
-        inittab_code += "   PyImport_AppendInittab(\"" + key + "\", " + initFunction + ");\n"
+        inittab_code += "   PyImport_AppendInittab(\"" + module_fullname + "\", " + module_initfunc_name + ");\n"
 
     staticinitheader += """
 #ifdef __cplusplus
@@ -207,7 +211,9 @@ static inline void Py_InitStaticModules(void) {
     if platform.system() == "Windows":
         compiler.compile(['python.c'], output_dir=build_dir, include_dirs=include_dirs, macros=macros)
 
-        compiler.link_executable([os.path.join(build_dir, 'python.obj')], 'python', output_dir=build_dir, libraries=linkLibs, library_dirs=library_dirs, extra_preargs=["/LTCG", "/USEPROFILE:PGD=python.pgd"])
+        compiler.link_executable([os.path.join(build_dir, 'python.obj')], 'python', output_dir=build_dir,
+                                 libraries=linkLibs, library_dirs=library_dirs,
+                                 extra_preargs=["/LTCG", "/USEPROFILE:PGD=python.pgd"])
 
         # Replace running interpreter by moving current version to a temp file, then marking it for deletion.
         interpreter_path = sys.executable
@@ -221,7 +227,9 @@ static inline void Py_InitStaticModules(void) {
     elif platform.system() == "Linux":
         sysconfig_libs = []
         sysconfig_lib_dirs = []
-        for arg in ["-lm", "-pthread", "-lutil", "-ldl"] + sysconfig.get_config_var("LDFLAGS").split() + sysconfig.get_config_var("CFLAGS").split() + sysconfig.get_config_var('MODLIBS').split() + sysconfig.get_config_var('LIBS').split():
+        for arg in ["-lm", "-pthread", "-lutil", "-ldl"] + sysconfig.get_config_var(
+                "LDFLAGS").split() + sysconfig.get_config_var("CFLAGS").split() + sysconfig.get_config_var(
+            'MODLIBS').split() + sysconfig.get_config_var('LIBS').split():
             if arg.startswith('-l'):
                 if arg[2:] not in sysconfig_libs:
                     sysconfig_libs.append(arg[2:])
@@ -232,15 +240,17 @@ static inline void Py_InitStaticModules(void) {
         link_libs = sysconfig_libs + link_libs
         library_dirs = sysconfig_lib_dirs + library_dirs
 
-        compiler.compile([os.path.join(sysconfig.get_config_var('prefix'), 'python.c')], output_dir="/", include_dirs=include_dirs, macros=macros)
+        compiler.compile([os.path.join(sysconfig.get_config_var('prefix'), 'python.c')], output_dir="/",
+                         include_dirs=include_dirs, macros=macros)
 
         compiler.link_executable(
-            objects = [os.path.join(sysconfig.get_config_var('prefix'), 'python.o')],
+            objects=[os.path.join(sysconfig.get_config_var('prefix'), 'python.o')],
             output_progname='python',
             output_dir=build_dir,
             libraries=link_libs,
             library_dirs=library_dirs,
-            extra_preargs=sysconfig.get_config_var("LDFLAGS").split() + ["-flto", "-fuse-linker-plugin", "-ffat-lto-objects", "-flto-partition=none"]
+            extra_preargs=sysconfig.get_config_var("LDFLAGS").split() + ["-flto", "-fuse-linker-plugin",
+                                                                         "-ffat-lto-objects", "-flto-partition=none"]
         )
 
         # Replace running interpreter by moving current version to a temp file, then deleting it. This
