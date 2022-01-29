@@ -228,7 +228,10 @@ def run_with_output(*args, **kwargs):
     return output
 
 
-def install_files(dst, *files, base_dir=None):
+def install_files(dst, *files, **kwargs):
+    base_dir = kwargs.pop("base_dir", None)
+    assert not kwargs
+
     if not os.path.isdir(dst):
         os.makedirs(dst, exist_ok=True)
     for file_glob in files:
@@ -245,21 +248,30 @@ def install_files(dst, *files, base_dir=None):
                 shutil.copy(file, os.path.join(dst, destination_filename))
 
 
-def install_dep_include(dependency_name, *files, base_dir=None):
+def install_dep_include(dependency_name, *files, **kwargs):
+    base_dir = kwargs.pop("base_dir", None)
+    assert not kwargs
+
     dependency_location = os.path.join(
         getDependencyInstallDir(), dependency_name, "include"
     )
     install_files(dependency_location, *files, base_dir=base_dir)
 
 
-def install_dep_libs(dependency_name, *files, base_dir=None):
+def install_dep_libs(dependency_name, *files, **kwargs):
+    base_dir = kwargs.pop("base_dir", None)
+    assert not kwargs
+
     dependency_location = os.path.join(
         getDependencyInstallDir(), dependency_name, "libs"
     )
     install_files(dependency_location, *files, base_dir=base_dir)
 
 
-def install_build_tool(tool_name, *files, base_dir=None):
+def install_build_tool(tool_name, *files, **kwargs):
+    base_dir = kwargs.pop("base_dir", None)
+    assert not kwargs
+
     dependency_location = os.path.join(getToolsInstallDir(), tool_name)
     install_files(dependency_location, *files, base_dir=base_dir)
 
