@@ -1,14 +1,21 @@
 import sys
 import os
-import importlib
 import json
 import fnmatch
 import __np__
+import sysconfig
+import warnings
 
-_pip = importlib.import_module('site-packages.pip')
+# Make the standard pip, the real pip module.
+# Need to keep a reference alive, or the module will loose all attributes.
+if "pip" in sys.modules:
+    _this_module = sys.modules["pip"]
+    del sys.modules["pip"]
 
-_pip.__name__ = 'pip'
-
+real_pip_dir = os.path.join(os.path.dirname(__file__), 'site-packages')
+sys.path.insert(0, real_pip_dir)
+import pip as _pip
+del sys.path[0]
 sys.modules['pip'] = _pip
 
 import pip._internal.req.req_install
@@ -47,7 +54,11 @@ def importFileAsModule(modulename, filename):
         """Import a file for Python version 2."""
         import imp
 
-        return imp.load_source(modulename, filename)
+        result = imp.load_source(modulename, filename)
+
+        # Otherwise there are warnings, when this one imports others.
+        result.__file__ = filename
+        return result
 
     def _importFilePy3OldWay(modulename, filename):
         """Import a file for Python versions before 3.5."""
@@ -105,6 +116,10 @@ def getPackageJson(section, name):
             return json.loads(data_file.read())
 
 
+def getBuildScriptName(dir_name, name):
+    return "build_script_" + os.path.basename(dir_name).replace("-", "_") + "_" + name
+
+
 def install_build_tool(name):
     package_index = getPackageJson("build_tools", name)
     package_dir_url = getPackageUrl("build_tools", name)
@@ -126,7 +141,7 @@ def install_build_tool(name):
         for file in package_index["files"]:
             urlretrieve("{package_dir_url}/{file}".format(**locals()), os.path.join(temp_dir, file))
 
-        build_script_module_name = "build_script_" + os.path.basename(temp_dir) + "_" + name
+        build_script_module_name = getBuildScriptName(temp_dir, name)
         initcwd = os.getcwd()
         initenviron = dict(os.environ)
 
@@ -159,8 +174,8 @@ def install_dependency(name):
         for dep in package_index['dependencies']:
             install_dependency(dep)
 
-    if os.path.isfile(os.path.join(__np__.DEPENDENCY_INSTALL_DIR, name, 'version.txt')):
-        with open(os.path.join(__np__.DEPENDENCY_INSTALL_DIR, name, 'version.txt'), 'r') as f:
+    if os.path.isfile(os.path.join(__np__.getDependencyInstallDir(), name, 'version.txt')):
+        with open(os.path.join(__np__.getDependencyInstallDir(), name, 'version.txt'), 'r') as f:
             version = f.read()
             if version == package_index['version']:
                 print("Skipping installed dependency {name}.".format(**locals()))
@@ -172,7 +187,7 @@ def install_dependency(name):
         for file in package_index["files"]:
             urlretrieve("{package_dir_url}/{file}".format(**locals()), os.path.join(temp_dir, file))
 
-        build_script_module_name = "build_script_" + os.path.basename(temp_dir) + "_" + name
+        build_script_module_name = getBuildScriptName(temp_dir, name)
         initcwd = os.getcwd()
         initenviron = dict(os.environ)
 
@@ -190,7 +205,7 @@ def install_dependency(name):
             os.environ.clear()
             os.environ.update(initenviron)
 
-    with open(os.path.join(__np__.DEPENDENCY_INSTALL_DIR, name, 'version.txt'), 'w') as f:
+    with open(os.path.join(__np__.getDependencyInstallDir(), name, 'version.txt'), 'w') as f:
         f.write(package_index["version"])
 
 
@@ -223,10 +238,13 @@ class InstallRequirement(_InstallRequirement):
 
         matched_source = None
         for source in package_index["scripts"]:
-            matched_metadata = True
             for key, value_glob in source["metadata"].items():
                 if not fnmatch.fnmatch(self.metadata[key], value_glob):
                     matched_metadata = False
+                    break
+            else:
+                matched_metadata = True
+
             if matched_metadata:
                 matched_source = source
                 break
@@ -245,14 +263,18 @@ class InstallRequirement(_InstallRequirement):
             package_dir_url = getPackageUrl("packages", self.name)
             urlretrieve("{package_dir_url}/{file}".format(**locals()), os.path.join(install_temp_dir, file))
 
-        build_script_module_name = "build_script_{uid}.{name}".format(
-            uid = os.path.basename(install_temp_dir),
-            name = self.name
-        )
+        build_script_module_name = getBuildScriptName(install_temp_dir, self.name)
 
         initcwd = os.getcwd()
         initenviron = dict(os.environ)
         build_script_module = importFileAsModule(build_script_module_name, os.path.join(install_temp_dir, matched_source["build_script"]))
+
+        static_pattern = matched_source.get("static_pattern")
+        if static_pattern is None and os.name == "nt":
+            static_pattern = "*"
+
+        # Put to empty, to avoid need to remove it and for easier manual usage.
+        os.environ["NUITKA_PYTHON_STATIC_PATTERN"] = static_pattern or ""
 
         try:
             result = build_script_module.run(self, install_temp_dir, self.source_dir, install_options, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
@@ -270,8 +292,9 @@ class InstallRequirement(_InstallRequirement):
         if result:
             _InstallRequirement.install(self, install_options, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
 
-        import rebuildpython
-        rebuildpython.run_rebuild()
+        if not int(os.environ.get("NUITKA_PYTHON_MANUAL_REBUILD", "0")):
+            import rebuildpython
+            rebuildpython.run_rebuild()
 
 
 pip._internal.req.req_install.InstallRequirement = InstallRequirement
@@ -314,14 +337,32 @@ class PackageFinder(_PackageFinder):
 pip._internal.index.package_finder.PackageFinder = PackageFinder
 
 
-if __name__ == "__main__":
-    import warnings
+def main():
     # Work around the error reported in #9540, pending a proper fix.
     # Note: It is essential the warning filter is set *before* importing
     #       pip, as the deprecation happens at import time, not runtime.
     warnings.filterwarnings(
         "ignore", category=DeprecationWarning, module=".*packaging\\.version"
     )
-    from pip._internal.cli.main import main as _main
 
+    cc_config_var = sysconfig.get_config_var("CC").split()[0]
+    if "CC" in os.environ and os.environ["CC"] != cc_config_var:
+        print("Overriding CC variable to Nuitka-Python used '%s' ..." % cc_config_var)
+    os.environ["CC"] = cc_config_var
+
+    cxx_config_var = sysconfig.get_config_var("CXX").split()[0]
+    if "CXX" in os.environ and os.environ["CXX"] != cxx_config_var:
+        print("Overriding CXX variable to Nuitka-Python used '%s' ..." % cxx_config_var)
+    os.environ["CXX"] = cxx_config_var
+
+    import site
+    for path in site.getsitepackages():
+        # Note: Some of these do not exist, at least on Linux.
+        if os.path.exists(path) and not os.access(path, os.W_OK):
+            sys.exit("Error, cannot write to '%s', but that is required." % path)
+
+    from pip._internal.cli.main import main as _main
     sys.exit(_main())
+
+if __name__ == "__main__":
+    main()
