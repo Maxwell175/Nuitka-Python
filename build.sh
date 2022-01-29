@@ -1,6 +1,5 @@
 #!/bin/bash
 
-exec >build-stdout.txt 2>build-stderr.txt
 
 set -e
 set -x
@@ -38,7 +37,7 @@ export CXX
   LIBS="-lffi -lbz2 -luuid -lsqlite3 -llzma"
 
 make -j 32 \
-        EXTRA_CFLAGS="-flto -fuse-linker-plugin -ffat-lto-objects" \
+        EXTRA_CFLAGS="-flto -fuse-linker-plugin -fno-fat-lto-objects" \
         PROFILE_TASK='./Lib/test/regrtest.py -x test_bsddb3 test_compiler test_cpickle test_cprofile test_dbm_dumb test_dbm_ndbm test_distutils test_ensurepip test_gdb test_io test_linuxaudiodev test_multiprocessing test_ossaudiodev test_platform test_pydoc test_socketserver test_subprocess test_sundry test_thread test_threaded_import test_threadedtempfile test_threading test_threading_local test_threadsignals test_xmlrpc test_zipfile' \
         profile-opt
 
