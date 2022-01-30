@@ -87,7 +87,7 @@ def run_rebuild():
 
     from distutils.sysconfig import get_config_var
 
-    ext_suffix = get_config_var("EXT_SUFFIX")
+    ext_suffix = get_config_var("SO" if str is bytes else "EXT_SUFFIX")
 
     extra_scan_dirs = []
     if platform.system() == "Windows":
