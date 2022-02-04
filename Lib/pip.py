@@ -141,10 +141,10 @@ def install_build_tool(name):
             install_build_tool(tool)
 
     if os.path.isfile(
-        os.path.join(__np__.BUILD_TOOLS_INSTALL_DIR, name, "version.txt")
+        os.path.join(__np__.getToolsInstallDir(), name, "version.txt")
     ):
         with open(
-            os.path.join(__np__.BUILD_TOOLS_INSTALL_DIR, name, "version.txt"), "r"
+            os.path.join(__np__.getToolsInstallDir(), name, "version.txt"), "r"
         ) as f:
             version = f.read()
             if version == package_index["version"]:
@@ -182,7 +182,7 @@ def install_build_tool(name):
             os.environ.update(initenviron)
 
     with open(
-        os.path.join(__np__.BUILD_TOOLS_INSTALL_DIR, name, "version.txt"), "w"
+        os.path.join(__np__.getToolsInstallDir(), name, "version.txt"), "w"
     ) as f:
         f.write(package_index["version"])
 
@@ -428,15 +428,17 @@ def main():
         "ignore", category=DeprecationWarning, module=".*packaging\\.version"
     )
 
-    cc_config_var = sysconfig.get_config_var("CC").split()[0]
-    if "CC" in os.environ and os.environ["CC"] != cc_config_var:
-        print("Overriding CC variable to Nuitka-Python used '%s' ..." % cc_config_var)
-    os.environ["CC"] = cc_config_var
+    if sysconfig.get_config_var("CC"):
+        cc_config_var = sysconfig.get_config_var("CC").split()[0]
+        if "CC" in os.environ and os.environ["CC"] != cc_config_var:
+            print("Overriding CC variable to Nuitka-Python used '%s' ..." % cc_config_var)
+        os.environ["CC"] = cc_config_var
 
-    cxx_config_var = sysconfig.get_config_var("CXX").split()[0]
-    if "CXX" in os.environ and os.environ["CXX"] != cxx_config_var:
-        print("Overriding CXX variable to Nuitka-Python used '%s' ..." % cxx_config_var)
-    os.environ["CXX"] = cxx_config_var
+    if sysconfig.get_config_var("CXX"):
+        cxx_config_var = sysconfig.get_config_var("CXX").split()[0]
+        if "CXX" in os.environ and os.environ["CXX"] != cxx_config_var:
+            print("Overriding CXX variable to Nuitka-Python used '%s' ..." % cxx_config_var)
+        os.environ["CXX"] = cxx_config_var
 
     import site
 
