@@ -315,7 +315,7 @@ def find_dep_include(dep_name):
 
 
 def find_dep_libs(dep_name):
-    return os.path.join(getDependencyInstallDir(), dep_name, "libs")
+    return os.path.join(getDependencyInstallDir(), dep_name, "lib")
 
 
 def prepend_to_file(file, prepend_str):
