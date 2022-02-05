@@ -263,7 +263,7 @@ def install_dep_libs(dependency_name, *files, **kwargs):
     assert not kwargs
 
     dependency_location = os.path.join(
-        getDependencyInstallDir(), dependency_name, "libs"
+        getDependencyInstallDir(), dependency_name, "lib"
     )
     install_files(dependency_location, *files, base_dir=base_dir)
 
