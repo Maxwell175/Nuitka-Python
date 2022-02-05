@@ -53,27 +53,29 @@ def getPythonInitFunctions(compiler, filename):
 
 def run_rebuild():
     installDir = os.path.dirname(sys.executable)
+    
+    has_compiler_vars = sysconfig.get_config_var("CC") and sysconfig.get_config_var("CXX")
 
     # Make sure we have the same compiler as used originally.
-    if sysconfig.get_config_var("CC"):
+    if has_compiler_vars:
         cc_config_var = sysconfig.get_config_var("CC").split()[0]
         if "CC" in os.environ and os.environ["CC"] != cc_config_var:
             print("Overriding CC variable to Nuitka-Python used '%s' ..." % cc_config_var)
         os.environ["CC"] = cc_config_var
 
-    if sysconfig.get_config_var("CXX"):
         cxx_config_var = sysconfig.get_config_var("CXX").split()[0]
         if "CXX" in os.environ and os.environ["CXX"] != cxx_config_var:
             print("Overriding CXX variable to Nuitka-Python used '%s' ..." % cxx_config_var)
         os.environ["CXX"] = cxx_config_var
 
     compiler = distutils.ccompiler.new_compiler(verbose=5)
-    compiler.set_executables(
-        compiler=cc_config_var,
-        compiler_so=cc_config_var,
-        linker_exe=cc_config_var,
-        compiler_cxx=cxx_config_var,
-    )
+    if has_compiler_vars:
+        compiler.set_executables(
+            compiler=cc_config_var,
+            compiler_so=cc_config_var,
+            linker_exe=cc_config_var,
+            compiler_cxx=cxx_config_var,
+        )
 
     try:
         compiler.initialize()
