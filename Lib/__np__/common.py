@@ -281,8 +281,8 @@ def find_build_tool_exe(tool_name, exe):
         return "patch"
 
     return (
-        glob.glob(os.path.join(getToolsInstallDir, tool_name, exe))
-        + glob.glob(os.path.join(getToolsInstallDir, tool_name, "bin", exe))
+        glob.glob(os.path.join(getToolsInstallDir(), tool_name, exe))
+        + glob.glob(os.path.join(getToolsInstallDir(), tool_name, "bin", exe))
     )[0]
 
 
