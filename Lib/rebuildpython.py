@@ -27,7 +27,7 @@ def find_files(directory, pattern):
 def getPythonInitFunctions(compiler, filename):
     if platform.system() == "Windows":
         initFunctions = [
-            x.decode("ascii")
+            x.decode("ascii").split(" ")[-1]
             for x in subprocess.check_output(
                 [compiler.dumpbin, "/linkermember", filename]
             ).split(b"\r\n")
@@ -53,7 +53,7 @@ def getPythonInitFunctions(compiler, filename):
 
 def run_rebuild():
     installDir = os.path.dirname(sys.executable)
-    
+
     has_compiler_vars = sysconfig.get_config_var("CC") and sysconfig.get_config_var("CXX")
 
     # Make sure we have the same compiler as used originally.
@@ -89,22 +89,26 @@ def run_rebuild():
 
     ext_suffix = get_config_var("EXT_SUFFIX")
 
+    extra_scan_dirs = []
+    if platform.system() == "Windows":
+        extra_scan_dirs.append(os.path.join(sysconfig.get_config_var('srcdir'), 'libs'))
+
     # Scan sys.path for any more lingering static libs.
-    for path in reversed(sys.path):
+    for path in list(reversed(sys.path)) + extra_scan_dirs:
         # Ignore the working directory so we don't grab duplicate stuff.
-        if path == installDir or path == os.getcwd():
+        if path == os.getcwd() or installDir == path or path in installDir:
             continue
         for file in find_files(
-            path, "*.lib" if platform.system() == "Windows" else "*.a"
+                path, "*.lib" if platform.system() == "Windows" else "*.a"
         ):
             if file in checkedLibs:
                 continue
 
             filename_base = os.path.basename(file)
 
-            if not filename_base.startswith("lib") or filename_base.endswith(
-                sysconfig.get_config_var("LIBRARY")
-            ):
+            python_lib = sysconfig.get_config_var("LIBRARY")
+            if (platform.system() != "Windows" and not filename_base.startswith("lib")) or \
+                    (python_lib is not None and filename_base.endswith(sysconfig.get_config_var("LIBRARY"))):
                 continue
 
             checkedLibs.add(filename_base)
@@ -123,10 +127,10 @@ def run_rebuild():
                     filename = filename[:-2]
                 if filename.endswith(".lib"):
                     filename = filename[:-4]
-                if filename.endswith(ext_suffix):
+                if ext_suffix and filename.endswith(ext_suffix):
                     filename = filename[: len(ext_suffix) * -1]
                 relativePath = (
-                    dirpath.replace("\\", ".").replace("/", ".") + "." + filename
+                        dirpath.replace("\\", ".").replace("/", ".") + "." + filename
                 )
                 print(relativePath, file)
                 foundLibs[relativePath] = file
@@ -180,8 +184,8 @@ def run_rebuild():
 
     # Scrape all available libs from the libs directory. We will let the linker worry about filtering out extra symbols.
     for file in find_files(
-        sysconfig.get_config_var("prefix"),
-        "*.lib" if platform.system() == "Windows" else "*.a",
+            sysconfig.get_config_var("prefix"),
+            "*.lib" if platform.system() == "Windows" else "*.a",
     ):
         link_libs.append(file)
 
@@ -191,7 +195,6 @@ def run_rebuild():
         if os.path.isfile(path + ".link.json"):
             with open(path + ".link.json", "r") as f:
                 linkData = json.load(f)
-                print(linkData)
                 link_libs += linkData["libraries"]
                 library_dirs += [
                     os.path.join(os.path.dirname(path), x)
@@ -236,32 +239,32 @@ extern "C" {
 
         staticinitheader += "   extern  PyObject* " + module_initfunc_name + "(void);\n"
         inittab_code += (
-            '   PyImport_AppendInittab("'
-            + module_fullname
-            + '", '
-            + module_initfunc_name
-            + ");\n"
+                '   PyImport_AppendInittab("'
+                + module_fullname
+                + '", '
+                + module_initfunc_name
+                + ");\n"
         )
 
     staticinitheader += (
-        """
-#ifdef __cplusplus
-}
-#endif // __cplusplus
+            """
+    #ifdef __cplusplus
+    }
+    #endif // __cplusplus
 
-static inline void Py_InitStaticModules(void) {
-%s
-}
+    static inline void Py_InitStaticModules(void) {
+    %s
+    }
 
-#endif
+    #endif
 
-#endif // !Py_STATICINIT_H
-"""
-        % inittab_code
+    #endif // !Py_STATICINIT_H
+    """
+            % inittab_code
     )
 
     with open(
-        os.path.join(sysconfig.get_config_var("INCLUDEPY"), "staticinit.h"), "w"
+            os.path.join(sysconfig.get_config_var("INCLUDEPY"), "staticinit.h"), "w"
     ) as f:
         f.write(staticinitheader)
 
@@ -283,6 +286,22 @@ static inline void Py_InitStaticModules(void) {
     os.chdir(interpreter_prefix)
 
     if platform.system() == "Windows":
+        final_lib_list = []
+        for lib in link_libs:
+            final_path = lib
+            if os.path.isabs(lib):
+                final_path = os.path.realpath(lib)
+            else:
+                for dir in library_dirs:
+                    if os.path.isfile(os.path.join(dir, lib)):
+                        final_path = os.path.join(dir, lib)
+                        break
+                    elif os.path.isfile(os.path.join(dir, lib) + ".lib"):
+                        final_path = os.path.join(dir, lib) + ".lib"
+                        break
+            if final_path not in final_lib_list:
+                final_lib_list.append(final_path)
+
         compiler.compile(
             ["python.c"], output_dir=build_dir, include_dirs=include_dirs, macros=macros
         )
@@ -291,7 +310,7 @@ static inline void Py_InitStaticModules(void) {
             [os.path.join(build_dir, "python.obj")],
             "python",
             output_dir=build_dir,
-            libraries=link_libs,
+            libraries=final_lib_list,
             library_dirs=library_dirs,
             extra_preargs=["/LTCG", "/USEPROFILE:PGD=python.pgd"],
         )
@@ -309,11 +328,11 @@ static inline void Py_InitStaticModules(void) {
         sysconfig_libs = []
         sysconfig_lib_dirs = []
         for arg in (
-            ["-lm", "-pthread", "-lutil", "-ldl"]
-            + sysconfig.get_config_var("LDFLAGS").split()
-            + sysconfig.get_config_var("CFLAGS").split()
-            + sysconfig.get_config_var("MODLIBS").split()
-            + sysconfig.get_config_var("LIBS").split()
+                ["-lm", "-pthread", "-lutil", "-ldl"]
+                + sysconfig.get_config_var("LDFLAGS").split()
+                + sysconfig.get_config_var("CFLAGS").split()
+                + sysconfig.get_config_var("MODLIBS").split()
+                + sysconfig.get_config_var("LIBS").split()
         ):
             if arg.startswith("-l"):
                 if arg[2:] not in sysconfig_libs:
@@ -341,12 +360,12 @@ static inline void Py_InitStaticModules(void) {
             libraries=link_libs,
             library_dirs=library_dirs,
             extra_preargs=sysconfig.get_config_var("LDFLAGS").split()
-            + [
-                "-flto",
-                "-fuse-linker-plugin",
-                "-ffat-lto-objects",
-                "-flto-partition=none",
-            ],
+                          + [
+                              "-flto",
+                              "-fuse-linker-plugin",
+                              "-ffat-lto-objects",
+                              "-flto-partition=none",
+                          ],
         )
 
         # Replace running interpreter by moving current version to a temp file, then deleting it. This
