@@ -129,11 +129,11 @@ def run_rebuild():
                     filename = filename[:-4]
                 if ext_suffix and filename.endswith(ext_suffix):
                     filename = filename[: len(ext_suffix) * -1]
-                relativePath = (
-                        dirpath.replace("\\", ".").replace("/", ".") + "." + filename
-                )
-                print(relativePath, file)
-                foundLibs[relativePath] = file
+                relative_path = filename
+                if dirpath:
+                    relative_path = dirpath.replace("\\", ".").replace("/", ".") + "." + relative_path
+                print(relative_path, file)
+                foundLibs[relative_path] = file
 
     print("Scanning for any additional libs to link...")
 
