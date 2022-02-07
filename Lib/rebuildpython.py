@@ -187,6 +187,8 @@ def run_rebuild():
             sysconfig.get_config_var("prefix"),
             "*.lib" if platform.system() == "Windows" else "*.a",
     ):
+        if "interpreter_build" in file:
+            continue
         link_libs.append(file)
 
     for _name, path in foundLibs.items():
@@ -302,6 +304,8 @@ extern "C" {
             if final_path not in final_lib_list:
                 final_lib_list.append(final_path)
 
+        link_libs = final_lib_list
+
         compiler.compile(
             ["python.c"], output_dir=build_dir, include_dirs=include_dirs, macros=macros
         )
@@ -310,7 +314,7 @@ extern "C" {
             [os.path.join(build_dir, "python.obj")],
             "python",
             output_dir=build_dir,
-            libraries=final_lib_list,
+            libraries=link_libs,
             library_dirs=library_dirs,
             extra_preargs=["/LTCG", "/USEPROFILE:PGD=python.pgd"],
         )
@@ -380,6 +384,8 @@ extern "C" {
         os.unlink(tmp.name)
 
         os.rename(os.path.join(build_dir, "python"), interpreter_path)
+
+    shutil.rmtree(build_dir, ignore_errors=True)
 
     with open(os.path.join(interpreter_prefix, "link.json"), "w") as f:
         json.dump(
