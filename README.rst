@@ -6,11 +6,11 @@ ways from the original.
 
 Our immediate goals are:
 
-[x] Windows: Add static linking (performance and lock down)
-[x] Windows: Reenable Windows 7 support (because why not)
-[x] LTO linking on Windows (performance and deployment size)
-[ ] Automatic patches for packages built from pip
-[ ] Support all major packages and provide upstream guidance.
+- ☑  Windows: Add static linking (performance and lock down)
+- ☑  Windows: Reenable Windows 7 support (because why not)
+- ☑  LTO linking on Windows (performance and deployment size)
+- ☑  Automatic patches for packages built from pip
+- ☐  Support all major packages and provide upstream guidance.
 
 Installation
 ============
@@ -41,7 +41,7 @@ install via ``python.exe -m pip`` however, it will be self-modifying the
 Copyright and License Information
 ---------------------------------
 
-Copyright (c) 2021 Nuitka Organsisation contributors. All rights reserved.
+Copyright (c) 2021-2022 Nuitka Organsisation contributors. All rights reserved.
 
 Copyright (c) 2001-2021 Python Software Foundation.  All rights reserved.
 
