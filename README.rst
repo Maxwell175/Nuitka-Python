@@ -41,7 +41,7 @@ install via ``python.exe -m pip`` however, it will be self-modifying the
 Copyright and License Information
 ---------------------------------
 
-Copyright (c) 2021-2022 Nuitka Organsisation contributors. All rights reserved.
+Copyright (c) 2021-2022 Nuitka Organization contributors. All rights reserved.
 
 Copyright (c) 2001-2021 Python Software Foundation.  All rights reserved.
 
