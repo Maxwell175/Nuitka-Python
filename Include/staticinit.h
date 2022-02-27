@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 
+#if defined(_WIN64) || defined(_WIN32)
     extern  PyObject* PyInit_unicodedata(void);
     extern  PyObject* PyInit_select(void);
     extern  PyObject* PyInit__bz2(void);
@@ -31,12 +32,15 @@ extern "C" {
     extern  PyObject* PyInit__sqlite3(void);
     extern  PyObject* PyInit__tkinter(void);
     extern  PyObject* PyInit__zoneinfo(void);
+#endif
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 static inline void Py_InitStaticModules() {
+
+#if defined(_WIN64) || defined(_WIN32)
     PyImport_AppendInittab("unicodedata", PyInit_unicodedata);
     PyImport_AppendInittab("select", PyInit_select);
     PyImport_AppendInittab("_bz2", PyInit__bz2);
@@ -57,6 +61,7 @@ static inline void Py_InitStaticModules() {
     PyImport_AppendInittab("_sqlite3", PyInit__sqlite3);
     PyImport_AppendInittab("_tkinter", PyInit__tkinter);
     PyImport_AppendInittab("_zoneinfo", PyInit__zoneinfo);
+#endif
 
 }
 
