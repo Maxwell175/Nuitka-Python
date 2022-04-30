@@ -253,7 +253,7 @@ _tkinter _tkinter.c tkappinit.c -DWITH_APPINIT $(TCLTK_INCLUDES) $(TCLTK_LIBS) \
 # *** Uncomment and edit for TOGL extension only:
 #	-DWITH_TOGL togl.c \
 # *** Uncomment and edit to reflect your Tcl/Tk versions:
-	-l:libtk8.6.a -l:libtcl8.6.a \
+	-ltk8.6 -ltcl8.6 \
 # *** Uncomment and edit to reflect where your X11 libraries are:
 #	-L/usr/X11R6/lib \
 # *** Or uncomment this for Solaris:
@@ -263,7 +263,7 @@ _tkinter _tkinter.c tkappinit.c -DWITH_APPINIT $(TCLTK_INCLUDES) $(TCLTK_LIBS) \
 # *** Uncomment for AIX:
 #	-lld \
 # *** Always uncomment this; X11 libraries to link with:
-	-lX11 -lXss -lXft -l:libfontconfig.a -l:libfreetype.a -l:libexpat.a -l:libpng.a
+	-lX11
 
 # Some system have -lcurses
 _curses -l:libncurses.a -l:libncursesw.a -l:libtermcap.a _cursesmodule.c
