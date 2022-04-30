@@ -311,7 +311,6 @@ _dbm
 nis
 _ctypes_test
 ossaudiodev
-_posixshmem
 xxlimited
 #_lzma
 #

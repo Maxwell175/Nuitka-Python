@@ -25,6 +25,18 @@ short_version=$(echo $long_version | sed -e 's#\.##')
 # Have this as a standard path. We are not yet relocatable, but that will come hopefully.
 target=/opt/nuitka-python${short_version}
 
+if [ ! -z "$1" ]
+then
+  target="$1"
+fi
+
+ELEVATE=
+if [ ! -w "$(dirname "$target")" ]
+then
+  ELEVATE=sudo
+  sudo echo
+fi
+
 # Allow to overload the compiler used via CC environment variable
 if [ "$CC" = "" ]
 then
@@ -38,13 +50,13 @@ export CC
 export CXX
 
 # The UCS4 has best compatibility with wheels on PyPI it seems.
-./configure --prefix=$target --disable-shared --enable-ipv6 --enable-unicode=ucs4 \
+./configure "--prefix=$target" --disable-shared --enable-ipv6 --enable-unicode=ucs4 \
   --enable-optimizations --with-lto --with-computed-gotos --with-fpectl \
-  CC=$CC \
-  CXX=$CXX \
+  CC="$CC" \
+  CXX="$CXX" \
   CFLAGS="-g" \
   LDFLAGS="-g -Xlinker -export-dynamic -rdynamic -Bsymbolic-functions -Wl,-z,relro" \
-  LIBS="-lffi -lbz2 -luuid -lsqlite3 -llzma"
+  LIBS="-lffi -lbz2 -luuid -lsqlite3 -llzma -lrt"
 
 make -j 32 \
         EXTRA_CFLAGS="-flto -fuse-linker-plugin -fno-fat-lto-objects" \
@@ -55,8 +67,9 @@ make build_all_merge_profile
 
 # Delayed deletion of old installation, to avoid having it not there for testing purposes
 # while compiling, which is slow due to PGO beign applied.
-sudo rm -rf $target && sudo CC=$CC CXX=$CXX make install
+$ELEVATE rm -rf "$target" && $ELEVATE "CC=$CC" "CXX=$CXX" make install
 
 # Make sure to have pip installed, might even remove it afterwards, Debian
 # e.g. doesn't include it.
-sudo mv $target/lib/python${long_version}/pip.py $target/lib/python${long_version}/pip.py.bak && sudo $target/bin/python${long_version} -m ensurepip && sudo mv $target/lib/python${long_version}/pip.py.bak $target/lib/python${long_version}/pip.py
+$ELEVATE mv "$target/lib/python${long_version}/pip.py" "$target/lib/python${long_version}/pip.py.bak" && $ELEVATE "$target/bin/python${long_version}" -m ensurepip && $ELEVATE mv "$target/lib/python${long_version}/pip.py.bak" "$target/lib/python${long_version}/pip.py"
+
