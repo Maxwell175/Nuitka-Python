@@ -30,13 +30,6 @@ then
   target="$1"
 fi
 
-ELEVATE=
-if [ ! -w "$(dirname "$target")" ]
-then
-  ELEVATE=sudo
-  sudo echo
-fi
-
 # Allow to overload the compiler used via CC environment variable
 if [ "$CC" = "" ]
 then
@@ -49,6 +42,13 @@ fi
 export CC
 export CXX
 
+ELEVATE=
+if [ ! -w "$(dirname "$target")" ]
+then
+  ELEVATE=sudo "CC=$CC" "CXX=$CXX"
+  sudo echo
+fi
+
 # The UCS4 has best compatibility with wheels on PyPI it seems.
 ./configure "--prefix=$target" --disable-shared --enable-ipv6 --enable-unicode=ucs4 \
   --enable-optimizations --with-lto --with-computed-gotos --with-fpectl \
@@ -56,7 +56,7 @@ export CXX
   CXX="$CXX" \
   CFLAGS="-g" \
   LDFLAGS="-g -Xlinker -export-dynamic -rdynamic -Bsymbolic-functions -Wl,-z,relro" \
-  LIBS="-lffi -lbz2 -luuid -lsqlite3 -llzma -lrt"
+  LIBS="-l:libffi.a -l:libbz2.a -l:libuuid.a -l:libsqlite3.a -l:liblzma.a -l:librt.a"
 
 make -j 32 \
         EXTRA_CFLAGS="-flto -fuse-linker-plugin -fno-fat-lto-objects" \
@@ -67,7 +67,7 @@ make build_all_merge_profile
 
 # Delayed deletion of old installation, to avoid having it not there for testing purposes
 # while compiling, which is slow due to PGO beign applied.
-$ELEVATE rm -rf "$target" && $ELEVATE "CC=$CC" "CXX=$CXX" make install
+$ELEVATE rm -rf "$target" && $ELEVATE make install
 
 # Make sure to have pip installed, might even remove it afterwards, Debian
 # e.g. doesn't include it.
