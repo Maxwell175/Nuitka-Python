@@ -332,6 +332,10 @@ def is_file_binary(file_path):
         return bool(f.read(1024).translate(None, textchars))
 
 
+def get_num_jobs():
+    return os.environ.get("NUM_JOBS", os.cpu_count())
+
+
 def shall_link_statically(name):
     import fnmatch
 

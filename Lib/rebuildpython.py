@@ -194,14 +194,35 @@ def run_rebuild():
     for _name, path in foundLibs.items():
         link_libs += [path]
 
-        if os.path.isfile(path + ".link.json"):
-            with open(path + ".link.json", "r") as f:
+    link_libs = list(set(link_libs))
+    library_dirs = list(set(library_dirs))
+
+    libIdx = 0
+    while libIdx < len(link_libs):
+        final_path = None
+        lib = link_libs[libIdx]
+        if os.path.isfile(lib):
+            final_path = lib
+        else:
+            for dir in library_dirs:
+                if os.path.isfile(os.path.join(dir, lib)):
+                    final_path = os.path.join(dir, lib)
+                    break
+                elif os.path.isfile(os.path.join(dir, lib) + ".a"):
+                    final_path = os.path.join(dir, lib) + ".a"
+                    break
+        if not final_path:
+            libIdx += 1
+            continue
+        if os.path.isfile(final_path + ".link.json"):
+            with open(final_path + ".link.json", "r") as f:
                 linkData = json.load(f)
                 link_libs += linkData["libraries"]
                 library_dirs += [
-                    os.path.join(os.path.dirname(path), x)
+                    os.path.join(os.path.dirname(final_path), x)
                     for x in linkData["library_dirs"]
                 ]
+        libIdx += 1
 
     link_libs = list(set(link_libs))
     library_dirs = list(set(library_dirs))
