@@ -158,7 +158,8 @@ def get_layout(ns):
 
     yield from in_build(PYTHON_DLL_NAME.replace(".dll", ".lib"))
     yield Path("python.c"), ns.source / "Programs" / "python.c"
-    yield "python.pgd", ns.build / "python.pgd"
+    if os.path.exists(ns.build / "python.pgd"):
+        yield "python.pgd", ns.build / "python.pgd"
 
     if ns.include_launchers and ns.include_appxmanifest:
         if ns.include_pip:
