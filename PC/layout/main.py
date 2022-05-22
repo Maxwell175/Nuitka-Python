@@ -117,7 +117,7 @@ def get_tcltk_lib(ns):
         return
 
     tcl_lib = os.getenv("TCL_LIBRARY")
-    if not tcl_lib or not os.path.isdir(tcl_lib):
+    if not tcl_lib or tcl_lib and not os.path.isdir(tcl_lib):
         try:
             with open(ns.build / "TCL_LIBRARY.env", "r", encoding="utf-8-sig") as f:
                 tcl_lib = f.read().strip()
@@ -128,10 +128,9 @@ def get_tcltk_lib(ns):
             return
 
     for dest, src in rglob(Path(tcl_lib).parent, "**/*"):
-        yield "tcl/{}".format(dest), src
+        yield (f"tcl/{dest}", src)
 
-    for dest, src in rglob(Path(tcl_lib).parent.parent.joinpath('bin'), "*.dll"):
-        yield dest, src
+    yield from rglob(Path(tcl_lib).parent.parent.joinpath('bin'), "*.dll")
 
 
 def get_layout(ns):
@@ -141,10 +140,10 @@ def get_layout(ns):
         src = ns.build / f
         if ns.debug and src not in REQUIRED_DLLS:
             if not src.stem.endswith("_d"):
-                src = src.parent / (src.stem + "_d" + src.suffix)
+                src = src.parent / f"{src.stem}_d{src.suffix}"
             if not n.endswith("_d"):
                 n += "_d"
-                f = n + "." + x
+                f = f"{n}.{x}"
         yield dest + n + "." + x, src
         if ns.include_symbols:
             pdb = src.with_suffix(".pdb")
@@ -217,9 +216,7 @@ def get_layout(ns):
     if ns.include_tools:
 
         def _c(d):
-            if d.is_dir():
-                return d in TOOLS_DIRS
-            return d in TOOLS_FILES
+            return d in TOOLS_DIRS if d.is_dir() else d in TOOLS_FILES
 
         for dest, src in rglob(ns.source / "Tools", "**/*", _c):
             yield "Tools/{}".format(dest), src
@@ -315,13 +312,12 @@ def _compile_one_py(src, dest, name, optimize, checked=True):
 def _py_temp_compile(src, name, ns, dest_dir=None, checked=True):
     if not ns.precompile or src not in PY_FILES or src.parent in DATA_DIRS:
         return None
-    dest = (dest_dir or ns.temp) / (src.stem + ".pyc")
+    dest = ((dest_dir or ns.temp)) / f"{src.stem}.pyc"
     return _compile_one_py(src, dest, name, optimize=2, checked=checked)
 
 
 def _write_to_zip(zf, dest, src, ns, checked=True):
-    pyc = _py_temp_compile(src, dest, ns, checked=checked)
-    if pyc:
+    if pyc := _py_temp_compile(src, dest, ns, checked=checked):
         try:
             zf.write(str(pyc), dest.with_suffix(".pyc"))
         finally:
@@ -338,7 +334,7 @@ def _write_to_zip(zf, dest, src, ns, checked=True):
         try:
             shutil.copy(src, tmp)
             load_grammar(str(tmp))
-            for f in ns.temp.glob(src.stem + "*.pickle"):
+            for f in ns.temp.glob(f"{src.stem}*.pickle"):
                 zf.write(str(f), str(dest.parent / f.name))
                 try:
                     f.unlink()
@@ -665,9 +661,6 @@ Catalog: {ns.catalog}""",
         return 3
     except SystemExit:
         raise
-    except:
-        log_exception("Unhandled error")
-
     if error_was_logged():
         log_error("Errors occurred.")
         return 1
