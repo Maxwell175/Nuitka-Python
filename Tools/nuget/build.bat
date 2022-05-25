@@ -34,8 +34,8 @@ if ERRORLEVEL 1 (echo Cannot locate MSBuild.exe on PATH or as MSBUILD variable &
 if defined PACKAGES set PACKAGES="/p:Packages=%PACKAGES%"
 
 if defined BUILDX86 (
-    if defined REBUILD ( call "%PCBUILD%build.bat" -e -r %PGO_OPT%
-    ) else if not exist "%Py_OutDir%win32\python.exe" call "%PCBUILD%build.bat" -e
+    if defined REBUILD ( call "%PCBUILD%build.bat" -p Win32 -r %PGO_OPT% -e 
+    ) else if not exist "%Py_OutDir%win32\python.exe" call "%PCBUILD%build.bat" -p Win32 -e 
     if errorlevel 1 goto :eof
 
     %MSBUILD% "%D%make_pkg.proj" /p:Configuration=Release /p:Platform=x86 %OUTPUT% %PACKAGES% %PYTHON_EXE%
@@ -50,6 +50,7 @@ if defined BUILDX64 (
     %MSBUILD% "%D%make_pkg.proj" /p:Configuration=Release /p:Platform=x64 %OUTPUT% %PACKAGES% %PYTHON_EXE%
     if errorlevel 1 goto :eof
 )
+
 
 if defined BUILDARM32 (
     if defined REBUILD ( call "%PCBUILD%build.bat" -p ARM -e -r --no-tkinter %PGO_OPT%

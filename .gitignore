@@ -153,5 +153,6 @@ Python/frozen_modules/MANIFEST
 !/Python/
 
 # Nuitka-Python specifics here:
-nuget-result
+nuget-result*
 output
+output32
