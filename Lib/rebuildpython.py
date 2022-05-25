@@ -33,6 +33,10 @@ def getPythonInitFunctions(compiler, filename):
             ).split(b"\r\n")
             if (b"init" if str is bytes else b"PyInit_") in x
         ]
+        # MSVC adds an underscore to the beginning of all symbols for x32.
+        # We must ignore this underscore.
+        if platform.system() == "Windows" and "32" in platform.architecture()[0]:
+            initFunctions = [x[1:] if x.startswith("_") else x for x in initFunctions]
     else:
         functions = [
             x.decode("ascii").split(" ")[-1]
@@ -166,6 +170,8 @@ def run_rebuild():
             "Cabinet",
             "winmm",
         ]
+        if "32" in platform.architecture()[0]:
+            link_libs += ["msvcrt"]
     else:
         link_libs = ["m"]
 
