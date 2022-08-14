@@ -45,7 +45,7 @@ export CXX
 ELEVATE=
 if [ ! -w "$(dirname "$target")" ]
 then
-  ELEVATE=sudo "CC=$CC" "CXX=$CXX"
+  export "ELEVATE=sudo \"CC=$CC\" \"CXX=$CXX\""
   sudo echo
 fi
 
