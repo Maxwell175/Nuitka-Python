@@ -390,6 +390,8 @@ def build_stub(
     build_options,  # type: List[str]
     global_options,  # type: List[str]
 ):
+    for r in requirements:
+        r.use_pep517 = False
     return [], requirements
 
 
