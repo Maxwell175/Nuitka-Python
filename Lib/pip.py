@@ -4,6 +4,7 @@ import os
 import sys
 import sysconfig
 import warnings
+import platform
 
 import __np__
 
@@ -100,16 +101,21 @@ PACKAGE_BASE_URL = os.environ.get(
 
 
 def getPackageUrl(section, name):
-    if os.name == "nt":
+    if platform.system() == "Windows":
         if str is bytes:
             section += "/np27-windows"
         else:
             section += "/np3-windows"
-    else:
+    elif platform.system() == "Linux":
         if str is bytes:
             section += "/np27-linux"
         else:
             section += "/np3-linux"
+    elif platform.system() == "Darwin":
+        if str is bytes:
+            section += "/np27-macos"
+        else:
+            section += "/np3-macos"
 
     return "{PACKAGE_BASE_URL}/{section}/{name}".format(
         PACKAGE_BASE_URL=PACKAGE_BASE_URL, section=section, name=name
@@ -266,6 +272,11 @@ class InstallRequirement(_InstallRequirement):
             package_index = getPackageJson("packages", self.name)
         except __np__.NoSuchURL:
             fallback = True
+        except:
+            if self.name == "certifi":
+                fallback = True
+            else:
+                throw
 
         if fallback or not self.source_dir:
             __np__.my_print("FALLBACK to standard install for %s" % self.name)

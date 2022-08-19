@@ -44,6 +44,7 @@ def getPythonInitFunctions(compiler, filename):
                 os.linesep.encode("ascii")
             )
         ]
+        functions = [x[1:] if x.startswith("_") else x for x in functions]
         initFunctions = [
             x for x in functions if x.startswith("init" if str is bytes else "PyInit_")
         ]
@@ -118,6 +119,7 @@ def run_rebuild():
             checkedLibs.add(filename_base)
 
             initFunctions = getPythonInitFunctions(compiler, file)
+            print(file, initFunctions)
 
             # If this lib has a Python init function, we should link it in.
             if initFunctions:
@@ -140,6 +142,7 @@ def run_rebuild():
                 foundLibs[relative_path] = file
 
     print("Scanning for any additional libs to link...")
+    print(foundLibs)
 
     # Start with the libs needed for a base interpreter.
     if platform.system() == "Windows":
@@ -202,6 +205,7 @@ def run_rebuild():
 
     link_libs = list(set(link_libs))
     library_dirs = list(set(library_dirs))
+    extra_link_args = []
 
     libIdx = 0
     while libIdx < len(link_libs):
@@ -228,6 +232,7 @@ def run_rebuild():
                     os.path.join(os.path.dirname(final_path), x)
                     for x in linkData["library_dirs"]
                 ]
+                extra_link_args += linkData["extra_postargs"]
         libIdx += 1
 
     link_libs = list(set(link_libs))
@@ -401,6 +406,61 @@ extern "C" {
                               "-fuse-linker-plugin",
                               "-ffat-lto-objects",
                               "-flto-partition=none",
+                          ],
+        )
+
+        # Replace running interpreter by moving current version to a temp file, then deleting it. This
+        # is to avoid Windows locks
+        interpreter_path = os.path.realpath(sys.executable)
+        tmp = tempfile.NamedTemporaryFile(
+            delete=False, dir=os.path.dirname(sys.executable)
+        )
+        tmp.close()
+        os.unlink(tmp.name)
+        shutil.move(interpreter_path, tmp.name)
+        os.unlink(tmp.name)
+
+        shutil.move(os.path.join(build_dir, "python"), interpreter_path)
+    elif platform.system() == "Darwin":
+        sysconfig_libs = []
+        sysconfig_lib_dirs = []
+        for arg in (
+                ["-lm", "-pthread", "-lutil", "-ldl"]
+                + sysconfig.get_config_var("LDFLAGS").split()
+                + sysconfig.get_config_var("CFLAGS").split()
+                + sysconfig.get_config_var("MODLIBS").split()
+                + sysconfig.get_config_var("LIBS").split()
+        ):
+            if arg.startswith("-l"):
+                if arg[2:] not in sysconfig_libs:
+                    sysconfig_libs.append(arg[2:])
+            elif arg.startswith("-L"):
+                if arg[2:] not in sysconfig_lib_dirs:
+                    sysconfig_lib_dirs.append(arg[2:])
+
+        link_libs = sysconfig_libs + link_libs
+        libpython_lib = [x for x in link_libs if os.path.basename(x).startswith('libpython') and x.endswith(".a")][0]
+        link_libs = [libpython_lib] + [x for x in link_libs if x != libpython_lib]
+        library_dirs = sysconfig_lib_dirs + library_dirs
+
+        compiler.compile(
+            [os.path.join(sysconfig.get_config_var("prefix"), "python.c")],
+            output_dir="/",
+            include_dirs=include_dirs,
+            macros=macros,
+        )
+
+        compiler.link_executable(
+            objects=[os.path.join(sysconfig.get_config_var("prefix"), "python.o")],
+            output_progname="python",
+            output_dir=build_dir,
+            libraries=link_libs,
+            library_dirs=library_dirs,
+            extra_preargs=sysconfig.get_config_var("LDFLAGS").split() + extra_link_args
+                          + [
+                              "-flto",
+                              "-framework", "SystemConfiguration",
+                              "-framework", "CoreFoundation",
                           ],
         )
 
