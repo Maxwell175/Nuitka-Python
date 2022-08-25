@@ -28,14 +28,13 @@ def main():
 
     # change working directory to the default SSL directory
     os.chdir(openssl_dir)
-    relpath_to_certifi_cafile = os.path.relpath(certifi.where())
     print(" -- removing any existing file or link")
     try:
         os.remove(openssl_cafile)
     except FileNotFoundError:
         pass
     print(" -- creating symlink to certifi certificate bundle")
-    os.symlink(relpath_to_certifi_cafile, openssl_cafile)
+    os.symlink(certifi.where(), openssl_cafile)
     print(" -- setting permissions")
     os.chmod(openssl_cafile, STAT_0o775)
     print(" -- update complete")

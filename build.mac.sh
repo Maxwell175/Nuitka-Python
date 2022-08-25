@@ -193,5 +193,21 @@ $ELEVATE rm -rf "$target" && $ELEVATE make install
 # e.g. doesn't include it.
 $ELEVATE mv "$target/lib/python${long_version}/pip.py" "$target/lib/python${long_version}/pip.py.bak" && \
     $ELEVATE "$target/bin/python${long_version}" -m ensurepip && \
-    $ELEVATE "$target/bin/python${long_version}" mac_install_ssl.py && \
+    $ELEVATE "$target/bin/python${long_version}" install_ssl.py && \
     $ELEVATE mv "$target/lib/python${long_version}/pip.py.bak" "$target/lib/python${long_version}/pip.py"
+
+
+$ELEVATE mkdir -p "$target/dependency_libs/base"
+$ELEVATE cp -r "$(pwd)/../Nuitka-Python-Deps/*" "$target/dependency_libs/base/"
+$ELEVATE ln -s "readline" "$target/dependency_libs/base"
+$ELEVATE ln -s "ncurses" "$target/dependency_libs/base"
+$ELEVATE ln -s "sqlite" "$target/dependency_libs/base"
+$ELEVATE ln -s "openssl" "$target/dependency_libs/base"
+$ELEVATE ln -s "gdbm" "$target/dependency_libs/base"
+$ELEVATE ln -s "bzip2" "$target/dependency_libs/base"
+$ELEVATE ln -s "uuid" "$target/dependency_libs/base"
+$ELEVATE ln -s "xz" "$target/dependency_libs/base"
+$ELEVATE ln -s "ffi" "$target/dependency_libs/base"
+$ELEVATE ln -s "zlib" "$target/dependency_libs/base"
+$ELEVATE ln -s "iconv" "$target/dependency_libs/base"
+$ELEVATE ln -s "gettext" "$target/dependency_libs/base"
