@@ -131,7 +131,7 @@ class NoSuchURL(Exception):
     pass
 
 
-def copytree(src, dst, symlinks=False, ignore=None):
+def copytree(src, dst, symlinks=False, ignore=None, executable=False):
     if not os.path.exists(dst):
         os.makedirs(dst)
     for item in os.listdir(src):
@@ -141,6 +141,8 @@ def copytree(src, dst, symlinks=False, ignore=None):
             copytree(s, d, symlinks, ignore)
         else:
             shutil.copy2(s, d)
+            if executable:
+                os.chmod(d, 509)  # 775
 
 
 def download_file(url, destination):
@@ -230,6 +232,7 @@ def run_with_output(*args, **kwargs):
 
 def install_files(dst, *files, **kwargs):
     base_dir = kwargs.pop("base_dir", None)
+    executable = kwargs.pop("executable", None)
     assert not kwargs
 
     if not os.path.isdir(dst):
@@ -243,9 +246,11 @@ def install_files(dst, *files, **kwargs):
             if not os.path.exists(os.path.dirname(file_dst)):
                 os.makedirs(os.path.dirname(file_dst))
             if os.path.isdir(file):
-                copytree(file, os.path.join(dst, destination_filename))
+                copytree(file, os.path.join(dst, destination_filename), executable=executable)
             else:
                 shutil.copy(file, os.path.join(dst, destination_filename))
+                if executable:
+                    os.chmod(os.path.join(dst, destination_filename), 509)  # 775
 
 
 def install_dep_include(dependency_name, *files, **kwargs):
