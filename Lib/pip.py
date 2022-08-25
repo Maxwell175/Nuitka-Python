@@ -21,6 +21,16 @@ import pip as _pip
 del sys.path[0]
 sys.modules["pip"] = _pip
 
+try:
+    import pip._internal.pyproject
+
+    def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
+        return None
+
+    pip._internal.pyproject.load_pyproject_toml = load_pyproject_toml
+except:
+    pass
+
 import pip._internal.req.req_install
 
 
