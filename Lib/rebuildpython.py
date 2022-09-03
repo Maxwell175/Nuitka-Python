@@ -112,8 +112,7 @@ def run_rebuild():
             filename_base = os.path.basename(file)
 
             python_lib = sysconfig.get_config_var("LIBRARY")
-            if (platform.system() != "Windows" and not filename_base.startswith("lib")) or \
-                    (python_lib is not None and filename_base.endswith(sysconfig.get_config_var("LIBRARY"))):
+            if python_lib is not None and filename_base.endswith(sysconfig.get_config_var("LIBRARY")):
                 continue
 
             checkedLibs.add(filename_base)
