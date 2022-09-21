@@ -101,6 +101,8 @@ def copy_file(src, dst, preserve_mode=1, preserve_times=1, update=0,
     from stat import ST_ATIME, ST_MTIME, ST_MODE, S_IMODE
 
     if not os.path.isfile(src):
+        src = os.path.join(os.path.dirname(src), "lib" + os.path.basename(src) + ".a")
+    if not os.path.isfile(src):
         raise DistutilsFileError(
               "can't copy '%s': doesn't exist or not a regular file" % src)
 

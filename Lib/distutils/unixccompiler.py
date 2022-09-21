@@ -157,7 +157,7 @@ class UnixCCompiler(CCompiler):
              output_filename, output_dir=None, libraries=None,
              library_dirs=None, runtime_library_dirs=None,
              export_symbols=None, debug=0, extra_preargs=None,
-             extra_postargs=None, build_temp=None, target_lang=None):
+             extra_postargs=None, build_temp=None, target_lang=None, extra_midargs=None):
         objects, output_dir = self._fix_object_args(objects, output_dir)
         fixed_args = self._fix_lib_args(libraries, library_dirs,
                                         runtime_library_dirs)
@@ -171,12 +171,14 @@ class UnixCCompiler(CCompiler):
             output_filename = os.path.join(output_dir, output_filename)
 
         if self._need_link(objects, output_filename):
-            ld_args = (objects + self.objects +
-                       lib_opts + ['-o', output_filename])
+            ld_args = (objects + self.objects)
             if debug:
                 ld_args[:0] = ['-g']
+            if extra_midargs:
+                ld_args += extra_midargs
             if extra_preargs:
                 ld_args[:0] = extra_preargs
+            ld_args += lib_opts + ['-o', output_filename]
             if extra_postargs:
                 ld_args.extend(extra_postargs)
             self.mkpath(os.path.dirname(output_filename))

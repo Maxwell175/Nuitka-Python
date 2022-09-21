@@ -727,11 +727,12 @@ class CCompiler:
                         debug=0,
                         extra_preargs=None,
                         extra_postargs=None,
-                        target_lang=None):
+                        target_lang=None,
+                        extra_midargs=None):
         self.link(CCompiler.EXECUTABLE, objects,
                   self.executable_filename(output_progname), output_dir,
                   libraries, library_dirs, runtime_library_dirs, None,
-                  debug, extra_preargs, extra_postargs, None, target_lang)
+                  debug, extra_preargs, extra_postargs, None, target_lang, extra_midargs)
 
 
     # -- Miscellaneous methods -----------------------------------------

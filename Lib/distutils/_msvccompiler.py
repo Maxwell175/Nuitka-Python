@@ -445,7 +445,8 @@ class MSVCCompiler(CCompiler) :
              extra_preargs=None,
              extra_postargs=None,
              build_temp=None,
-             target_lang=None):
+             target_lang=None,
+             extra_midargs=None):
 
         if not self.initialized:
             self.initialize()

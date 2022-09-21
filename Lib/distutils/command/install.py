@@ -610,7 +610,8 @@ class install(Command):
                        "you'll have to change the search path yourself"),
                        self.install_lib)
         
-        rebuildpython.run_rebuild()
+        if self.config_vars['dist_name'] != "Python":
+            rebuildpython.run_rebuild()
 
     def create_path_file(self):
         """Creates the .pth file"""

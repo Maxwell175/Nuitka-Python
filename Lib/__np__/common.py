@@ -147,9 +147,9 @@ def copytree(src, dst, symlinks=False, ignore=None, executable=False):
 
 def download_file(url, destination):
     if str is bytes:
-        from urllib2 import HTTPError, Request, urlopen
+        from urllib2 import URLError, HTTPError, Request, urlopen
     else:
-        from urllib.request import HTTPError, Request, urlopen
+        from urllib.request import URLError, HTTPError, Request, urlopen
 
     try:
         my_print("Attempting to download '%s'." % url, style="blue")
@@ -183,6 +183,12 @@ def download_file(url, destination):
 
     except HTTPError as e:
         if e.code == 404:
+            raise NoSuchURL(url)
+        else:
+            raise
+    except URLError as e:
+        # Seems that macOS throws this error instead for file:// links. :(
+        if 'Errno 2' in str(e.reason):
             raise NoSuchURL(url)
         else:
             raise
@@ -278,7 +284,7 @@ def install_build_tool(tool_name, *files, **kwargs):
     assert not kwargs
 
     dependency_location = os.path.join(getToolsInstallDir(), tool_name)
-    install_files(dependency_location, *files, base_dir=base_dir)
+    install_files(dependency_location, *files, base_dir=base_dir, executable=True)
 
 
 def find_build_tool_exe(tool_name, exe):

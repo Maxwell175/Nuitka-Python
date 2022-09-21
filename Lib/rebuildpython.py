@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import __np__
 import ctypes
 import distutils
 import distutils.ccompiler
@@ -318,6 +319,9 @@ extern "C" {
 
     os.chdir(interpreter_prefix)
 
+    link_flags = []
+    compile_flags = []
+
     if platform.system() == "Windows":
         final_lib_list = []
         for lib in link_libs:
@@ -427,8 +431,6 @@ extern "C" {
                 ["-lm", "-pthread", "-lutil", "-ldl"]
                 + sysconfig.get_config_var("LDFLAGS").split()
                 + sysconfig.get_config_var("CFLAGS").split()
-                + sysconfig.get_config_var("MODLIBS").split()
-                + sysconfig.get_config_var("LIBS").split()
         ):
             if arg.startswith("-l"):
                 if arg[2:] not in sysconfig_libs:
@@ -440,7 +442,9 @@ extern "C" {
         link_libs = sysconfig_libs + link_libs
         libpython_lib = [x for x in link_libs if os.path.basename(x).startswith('libpython') and x.endswith(".a")][0]
         link_libs = [libpython_lib] + [x for x in link_libs if x != libpython_lib]
-        library_dirs = sysconfig_lib_dirs + library_dirs
+        library_dirs = [x for x in sysconfig_lib_dirs + library_dirs if 'Nuitka-Python-Deps' not in x]
+
+        os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
 
         compiler.compile(
             [os.path.join(sysconfig.get_config_var("prefix"), "python.c")],
@@ -448,6 +452,29 @@ extern "C" {
             include_dirs=include_dirs,
             macros=macros,
         )
+        
+        extra_args_combined = [x for x in sysconfig.get_config_var("LDFLAGS").split() if not x.startswith("-L") and not x.startswith("-l")] \
+                                + extra_link_args \
+                                + [
+                                    "-flto",
+                                    "-framework", "SystemConfiguration",
+                                    "-framework", "CoreFoundation",
+                                ]
+        i = 0
+        used_frameworks = []
+        final_extra_link_args = ["-lstdc++"]
+        while i < len(extra_args_combined):
+            if extra_args_combined[i].lower() == "-framework":
+                if i + 1 < len(extra_args_combined) and \
+                        extra_args_combined[i + 1] not in used_frameworks:
+                    used_frameworks.append(extra_args_combined[i + 1])
+                    final_extra_link_args += ["-framework", extra_args_combined[i + 1]]
+                i += 2
+            if extra_args_combined[i].lower() in ("-g", "-xlinker"):
+                i += 1
+            else:
+                final_extra_link_args += [extra_args_combined[i]]
+                i += 1
 
         compiler.link_executable(
             objects=[os.path.join(sysconfig.get_config_var("prefix"), "python.o")],
@@ -455,13 +482,31 @@ extern "C" {
             output_dir=build_dir,
             libraries=link_libs,
             library_dirs=library_dirs,
-            extra_preargs=sysconfig.get_config_var("LDFLAGS").split() + extra_link_args
-                          + [
-                              "-flto",
-                              "-framework", "SystemConfiguration",
-                              "-framework", "CoreFoundation",
-                          ],
+            extra_preargs=["-g", "-Xlinker"],
+            extra_midargs=final_extra_link_args,
         )
+        
+        otool_output = __np__.run_with_output("otool", "-l", os.path.join(build_dir, "python"))
+        curr_load_lines = []
+        for line in otool_output.split('\n'):
+            if line.startswith("Load command") or line.startswith("Section"):
+                curr_load_lines.append({})
+                continue
+            if len(curr_load_lines) == 0:
+                continue
+            if not line.strip():
+                continue
+
+            first_word = [x for x in enumerate(line.split(' ')) if x[1]][0]
+            name_len = first_word[0] + len(first_word[1])
+            curr_load_lines[-1][line[:name_len].strip()] = line[name_len + 1:]
+
+        for lib in [x for x in curr_load_lines if x.get('name') and not x.get('name').startswith("/") and not x.get('name').startswith("@")]:
+            __np__.run_with_output("install_name_tool", "-change", lib['name'].split(' ')[0], os.path.join("@rpath", lib['name'].split(' ')[0]), os.path.join(build_dir, "python"))
+
+        __np__.run_with_output("install_name_tool", "-add_rpath", "@loader_path", os.path.join(build_dir, "python"))
+
+        link_flags = final_extra_link_args
 
         # Replace running interpreter by moving current version to a temp file, then deleting it. This
         # is to avoid Windows locks
@@ -485,6 +530,8 @@ extern "C" {
                 "macros": macros,
                 "libraries": link_libs,
                 "library_dirs": library_dirs,
+                "link_flags": link_flags,
+                "compile_flags": compile_flags
             },
             f,
         )

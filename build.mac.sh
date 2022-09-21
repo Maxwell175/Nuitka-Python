@@ -196,7 +196,7 @@ $ELEVATE mv "$target/lib/python${long_version}/pip.py" "$target/lib/python${long
     $ELEVATE "$target/bin/python${long_version}" install_ssl.py && \
     $ELEVATE mv "$target/lib/python${long_version}/pip.py.bak" "$target/lib/python${long_version}/pip.py"
 
-
+# Copy over the compiled dependencies.
 $ELEVATE mkdir -p "$target/dependency_libs"
 $ELEVATE cp -r "$(pwd)/../Nuitka-Python-Deps" "$target/dependency_libs/base"
 $ELEVATE ln -s base "$target/dependency_libs/readline"
@@ -211,3 +211,6 @@ $ELEVATE ln -s base "$target/dependency_libs/ffi"
 $ELEVATE ln -s base "$target/dependency_libs/zlib"
 $ELEVATE ln -s base "$target/dependency_libs/iconv"
 $ELEVATE ln -s base "$target/dependency_libs/gettext"
+
+$ELEVATE "$target/bin/python${long_version}" -m rebuildpython
+
