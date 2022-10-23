@@ -215,6 +215,7 @@ def run_with_output(*args, **kwargs):
     import subprocess
 
     stdin = kwargs.pop("stdin", None)
+    quiet = kwargs.pop("quiet", False)
     assert not kwargs
 
     p = subprocess.Popen(
@@ -227,8 +228,9 @@ def run_with_output(*args, **kwargs):
 
     output = ""
     for line in p.stdout:
-        sys.stdout.write(line)
-        sys.stdout.flush()
+        if not quiet:
+            sys.stdout.write(line)
+            sys.stdout.flush()
         output += line
     p.wait()
     if p.returncode != 0:

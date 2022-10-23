@@ -3,12 +3,22 @@
 set -e
 set -x
 
+if [ "$arch" = "" ]; then
+  if [ "$(arch)" = "arm64" ]; then
+    arch=arm64
+  else
+    arch=x86-64
+  fi
+fi
+
+echo Building for architecture $arch
+
 # The dependencies must be outside of the build folder because
 # the python build process ends up running a find -delete that
 # happens to also delete all the static libraries that we built.
 export "PREFIX=$(pwd)/../Nuitka-Python-Deps"
-export "CFLAGS=-mmacosx-version-min=10.9 -I${PREFIX}/include"
-export "LDFLAGS=-L${PREFIX}/lib"
+export "CFLAGS=-arch $arch -mmacosx-version-min=10.9 -I${PREFIX}/include -I$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/ffi -flto=thin"
+export "LDFLAGS=-arch $arch -L${PREFIX}/lib"
 export "MACOSX_DEPLOYMENT_TARGET=10.9"
 
 
@@ -49,7 +59,11 @@ if [ ! -d openssl-1.1.1q ]; then
 curl https://www.openssl.org/source/openssl-1.1.1q.tar.gz -o openssl.tar.gz
 tar -xf openssl.tar.gz
 cd openssl-1.1.1q
-./configure --prefix=${PREFIX} darwin64-x86_64-cc enable-ec_nistp_64_gcc_128 no-shared no-tests
+if [ "$arch" = "arm64" ]; then
+  ./Configure --prefix=${PREFIX} darwin64-arm64-cc enable-ec_nistp_64_gcc_128 no-shared no-tests
+else
+  ./Configure --prefix=${PREFIX} darwin64-x86_64-cc enable-ec_nistp_64_gcc_128 no-shared no-tests
+fi
 make depend all -j$(sysctl -n hw.ncpu)
 make install 
 cd ..
@@ -87,16 +101,6 @@ if [ ! -d xz-5.2.5 ]; then
 curl -L https://downloads.sourceforge.net/project/lzmautils/xz-5.2.5.tar.gz -o xz.tar.gz
 tar -xf xz.tar.gz
 cd xz-5.2.5
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(sysctl -n hw.ncpu)
-make install
-cd ..
-fi
-
-if [ ! -d libffi-3.4.2 ]; then
-curl -L https://github.com/libffi/libffi/releases/download/v3.4.2/libffi-3.4.2.tar.gz -o libffi.tar.gz
-tar -xf libffi.tar.gz
-cd libffi-3.4.2
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(sysctl -n hw.ncpu)
 make install
@@ -169,17 +173,19 @@ fi
 
 cp Modules/Setup.macos Modules/Setup
 
+export "LDFLAGS=-L${PREFIX}/lib"
+
 # The UCS4 has best compatibility with wheels on PyPI it seems.
 ./configure "--prefix=$target" --disable-shared --enable-ipv6 --enable-unicode=ucs4 \
   --enable-optimizations --with-lto --with-computed-gotos --with-fpectl \
   CC="$CC" \
   CXX="$CXX" \
   CFLAGS="-g -mmacosx-version-min=10.9 $CFLAGS" \
-  LDFLAGS="-g -Xlinker $LDFLAGS" \
-  LIBS="-lffi -lbz2 -luuid -lsqlite3 -llzma"
+  LDFLAGS="-arch $arch -g -Xlinker $LDFLAGS" \
+  LIBS="-lffi -lbz2 -luuid -lsqlite3 -llzma" \
+  ax_cv_c_float_words_bigendian=no
 
 make -j 32 \
-        EXTRA_CFLAGS="-flto" \
         PROFILE_TASK='./Lib/test/regrtest.py -j 8 -x test_bsddb3 test_compiler test_cpickle test_cprofile test_dbm_dumb test_dbm_ndbm test_distutils test_ensurepip test_gdb test_io test_linuxaudiodev test_multiprocessing test_ossaudiodev test_platform test_pydoc test_socketserver test_subprocess test_sundry test_thread test_threaded_import test_threadedtempfile test_threading test_threading_local test_threadsignals test_xmlrpc test_zipfile' \
         profile-opt
 

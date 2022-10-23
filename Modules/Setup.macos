@@ -263,7 +263,7 @@ _sha3 _sha3/sha3module.c
 _blake2 _blake2/blake2module.c _blake2/blake2b_impl.c _blake2/blake2s_impl.c
 
 # Nuitka: _ctypes module
-_ctypes -I$(srcdir)/Modules/_ctypes _ctypes/malloc_closure.c _ctypes/stgdict.c _ctypes/callbacks.c _ctypes/cfield.c _ctypes/_ctypes.c _ctypes/callproc.c
+_ctypes -I$(srcdir)/Modules/_ctypes -I$(srcdir)/Modules/_ctypes/darwin _ctypes/malloc_closure.c _ctypes/stgdict.c _ctypes/callbacks.c _ctypes/cfield.c _ctypes/_ctypes.c _ctypes/callproc.c -lffi -DUSING_MALLOC_CLOSURE_DOT_C=1 -DMACOSX -DUSING_APPLE_OS_LIBFFI=1 -DHAVE_FFI_PREP_CIF_VAR=1 -DHAVE_FFI_PREP_CLOSURE_LOC=1 -DHAVE_FFI_CLOSURE_ALLOC=1
 #_ctypes/darwin/dlfcn_simple.c
 #_ctypes/libffi_osx/types.c
 #_ctypes/libffi_osx/powerpc/ppc-ffi_darwin.c

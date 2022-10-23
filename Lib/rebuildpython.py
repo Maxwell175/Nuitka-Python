@@ -428,7 +428,7 @@ extern "C" {
         sysconfig_libs = []
         sysconfig_lib_dirs = []
         for arg in (
-                ["-lm", "-pthread", "-lutil", "-ldl"]
+                ["-lm", "-pthread", "-lutil", "-ldl", "-lffi"]
                 + sysconfig.get_config_var("LDFLAGS").split()
                 + sysconfig.get_config_var("CFLAGS").split()
         ):
@@ -456,10 +456,14 @@ extern "C" {
         extra_args_combined = [x for x in sysconfig.get_config_var("LDFLAGS").split() if not x.startswith("-L") and not x.startswith("-l")] \
                                 + extra_link_args \
                                 + [
-                                    "-flto",
+                                    "-flto=thin",
                                     "-framework", "SystemConfiguration",
                                     "-framework", "CoreFoundation",
+                                    "-framework", "Carbon",
                                 ]
+        num_link_threads = os.environ.get("LINK_THREADS", None)
+        if num_link_threads is not None:
+            extra_args_combined += ["-Wl,-mllvm,-threads=" + num_link_threads]
         i = 0
         used_frameworks = []
         final_extra_link_args = ["-lstdc++"]
@@ -470,7 +474,7 @@ extern "C" {
                     used_frameworks.append(extra_args_combined[i + 1])
                     final_extra_link_args += ["-framework", extra_args_combined[i + 1]]
                 i += 2
-            if extra_args_combined[i].lower() in ("-g", "-xlinker"):
+            elif extra_args_combined[i].lower() in ("-g", "-xlinker"):
                 i += 1
             else:
                 final_extra_link_args += [extra_args_combined[i]]
@@ -486,7 +490,7 @@ extern "C" {
             extra_midargs=final_extra_link_args,
         )
         
-        otool_output = __np__.run_with_output("otool", "-l", os.path.join(build_dir, "python"))
+        otool_output = __np__.run_with_output("otool", "-l", os.path.join(build_dir, "python"), quiet=True)
         curr_load_lines = []
         for line in otool_output.split('\n'):
             if line.startswith("Load command") or line.startswith("Section"):
