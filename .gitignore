@@ -156,3 +156,5 @@ Python/frozen_modules/MANIFEST
 nuget-result*
 output
 output32
+
+dep-build/
