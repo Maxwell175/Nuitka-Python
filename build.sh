@@ -118,10 +118,10 @@ make install
 cd ..
 fi
 
-if [ ! -d zlib-1.2.12 ]; then
-curl -L https://zlib.net/zlib-1.2.12.tar.gz -o zlib.tar.gz
+if [ ! -d zlib-1.2.13 ]; then
+curl -L https://zlib.net/zlib-1.2.13.tar.gz -o zlib.tar.gz
 tar -xf zlib.tar.gz
-cd zlib-1.2.12
+cd zlib-1.2.13
 ./configure --prefix=${PREFIX} --static
 make -j$(nproc --all)
 make install
