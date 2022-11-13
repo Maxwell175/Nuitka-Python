@@ -186,7 +186,7 @@ fi
   CC="$CC" \
   CXX="$CXX" \
   CFLAGS="-g $CFLAGS" \
-  LDFLAGS="-g -Xlinker -export-dynamic -rdynamic -Bsymbolic-functions -Wl,-z,relro $LDFLAGS" \
+  LDFLAGS="-g -Xlinker -export-dynamic -rdynamic -Bsymbolic-functions -Wl,-z,relro -Wl,-allow-multiple-definition $LDFLAGS" \
   LIBS="-l:libffi.a -l:libbz2.a -l:libuuid.a -l:libsqlite3.a -l:liblzma.a -l:librt.a"
 
 make -j 32 \
