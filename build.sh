@@ -108,10 +108,10 @@ make install
 cd ..
 fi
 
-if [ ! -d libffi-3.4.2 ]; then
+if [ ! -d libffi-3.4.3 ]; then
 curl -L https://github.com/libffi/libffi/releases/download/v3.4.3/libffi-3.4.3.tar.gz -o libffi.tar.gz
 tar -xf libffi.tar.gz
-cd libffi-3.4.2
+cd libffi-3.4.3
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
