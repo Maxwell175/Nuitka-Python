@@ -7,21 +7,11 @@
             <Component Id="_tkinter.lib" Directory="libs" Guid="*">
                 <File Name="_tkinter.lib" KeyPath="yes" />
             </Component>
-            <Component Id="tcl86t.lib" Directory="libs" Guid="*">
-                <File Name="tcl86t.lib" Source="..\..\externals\tcltk-8.6.9.0\amd64\lib\tcl86t.lib" KeyPath="yes" />
+            <Component Id="tcl86ts.lib" Directory="libs" Guid="*">
+                <File Name="tcl86ts.lib" Source="..\..\externals\tcltk-8.6.12.0\amd64\lib\tcl86ts.lib" KeyPath="yes" />
             </Component>
-            <Component Id="tk86t.lib" Directory="libs" Guid="*">
-                <File Name="tk86t.lib" Source="..\..\externals\tcltk-8.6.9.0\amd64\lib\tk86t.lib" KeyPath="yes" />
-            </Component>
-            <Component Id="tcl86t.dll" Directory="DLLs" Guid="*">
-                <File Name="tcl86t.dll" KeyPath="yes">
-					<CopyFile Id="MyFileCopyIdTCL" DestinationDirectory="InstallDirectory" />
-				</File>
-            </Component>
-            <Component Id="tk86t.dll" Directory="DLLs" Guid="*">
-                <File Name="tk86t.dll" KeyPath="yes">
-					<CopyFile Id="MyFileCopyIdTK" DestinationDirectory="InstallDirectory" />
-				</File>
+            <Component Id="tk86ts.lib" Directory="libs" Guid="*">
+                <File Name="tk86ts.lib" Source="..\..\externals\tcltk-8.6.12.0\amd64\lib\tk86ts.lib" KeyPath="yes" />
             </Component>
         </ComponentGroup>
     </Fragment>

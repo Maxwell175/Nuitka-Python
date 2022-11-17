@@ -35,7 +35,7 @@ rem Move the standalone build result to "output". TODO: Version number could be 
 rem from the Python binary built, or much rather we do not use one in the nuget build at all.
 
 set OUTPUT_DIR=output
-set SRC_TOOLS_DIR=nuget-result-%NUGET_PYTHON_PACKAGE_NAME%\%NUGET_PYTHON_PACKAGE_NAME%.3.9.5\tools
+set SRC_TOOLS_DIR=nuget-result-%NUGET_PYTHON_PACKAGE_NAME%\%NUGET_PYTHON_PACKAGE_NAME%.3.9.15\tools
 set SRC_LIB_DIR=%%d\amd64
 if "%ARCH_OPT%" EQU "-x86" (
     set OUTPUT_DIR=output32
@@ -51,3 +51,4 @@ for /d %%d in (externals\openssl*) do (
 echo "Ok, Nuitka Python now lives in %OUTPUT_DIR% folder"
 
 endlocal
+

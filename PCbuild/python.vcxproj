@@ -97,9 +97,9 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <StackReserveSize>2000000</StackReserveSize>
-      <AdditionalDependencies>advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;ws2_32.lib;version.lib;libssl.lib;libcrypto.lib;tcl86t.lib;tk86t.lib;Crypt32.lib;Iphlpapi.lib;msi.lib;Rpcrt4.lib;Cabinet.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories Condition="'$(Platform)'=='Win32'">..\..\Nuitka-Python\externals\tcltk-8.6.9.0\win32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalLibraryDirectories Condition="'$(Platform)'=='x64'">..\..\Nuitka-Python\externals\tcltk-8.6.9.0\amd64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;ws2_32.lib;version.lib;Netapi32.lib;libssl.lib;libcrypto.lib;tcl86ts.lib;tclstub86.lib;tk86ts.lib;Crypt32.lib;Iphlpapi.lib;msi.lib;Rpcrt4.lib;Cabinet.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories Condition="'$(Platform)'=='Win32'">..\..\Nuitka-Python\externals\tcltk-8.6.12.0\win32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(Platform)'=='x64'">..\..\Nuitka-Python\externals\tcltk-8.6.12.0\amd64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

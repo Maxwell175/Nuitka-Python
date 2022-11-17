@@ -164,14 +164,15 @@ def run_rebuild():
             "version",
             "libssl",
             "libcrypto",
-            "tcl86t",
-            "tk86t",
+            "tcl86ts",
+            "tk86ts",
             "Crypt32",
             "Iphlpapi",
             "msi",
             "Rpcrt4",
             "Cabinet",
             "winmm",
+            "Netapi32",
         ]
         if "32" in platform.architecture()[0]:
             link_libs += ["msvcrt"]
@@ -232,7 +233,7 @@ def run_rebuild():
                     os.path.join(os.path.dirname(final_path), x)
                     for x in linkData["library_dirs"]
                 ]
-                extra_link_args += linkData["extra_postargs"]
+                extra_link_args += linkData.get("extra_postargs", [])
         libIdx += 1
 
     link_libs = list(set(link_libs))
@@ -452,7 +453,7 @@ extern "C" {
             include_dirs=include_dirs,
             macros=macros,
         )
-        
+
         extra_args_combined = [x for x in sysconfig.get_config_var("LDFLAGS").split() if not x.startswith("-L") and not x.startswith("-l")] \
                                 + extra_link_args \
                                 + [
@@ -489,7 +490,7 @@ extern "C" {
             extra_preargs=["-g", "-Xlinker"],
             extra_midargs=final_extra_link_args,
         )
-        
+
         otool_output = __np__.run_with_output("otool", "-l", os.path.join(build_dir, "python"), quiet=True)
         curr_load_lines = []
         for line in otool_output.split('\n'):
