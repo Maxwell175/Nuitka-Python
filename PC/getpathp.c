@@ -256,6 +256,11 @@ typedef HRESULT(__stdcall *PPathCchCombineEx) (PWSTR pszPathOut, size_t cchPathO
                                                unsigned long dwFlags);
 static PPathCchCombineEx _PathCchCombineEx;
 
+static int _PathCchCombine_Initialized = 0;
+typedef HRESULT(__stdcall *PPathCchCombine) (PWSTR pszPathOut, size_t cchPathOut,
+                                               PCWSTR pszPathIn, PCWSTR pszMore);
+static PPathCchCombine _PathCchCombine;
+
 static void
 join(wchar_t *buffer, const wchar_t *stuff)
 {
@@ -275,8 +280,22 @@ join(wchar_t *buffer, const wchar_t *stuff)
             Py_FatalError("buffer overflow in getpathp.c's join()");
         }
     } else {
-        if (!PathCombineW(buffer, buffer, stuff)) {
-            Py_FatalError("buffer overflow in getpathp.c's join()");
+        if (_PathCchCombine_Initialized == 0) {
+            HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
+                                             LOAD_LIBRARY_SEARCH_SYSTEM32);
+            if (pathapi) {
+                _PathCchCombine = (PPathCchCombine)GetProcAddress(pathapi, "PathCchCombine");
+            }
+            else {
+                _PathCchCombine = NULL;
+            }
+            _PathCchCombine_Initialized = 1;
+        }
+        
+        if (_PathCchCombine) {
+            if (FAILED(_PathCchCombine(buffer, MAXPATHLEN+1, buffer, stuff))) {
+                Py_FatalError("buffer overflow in getpathp.c's join()");
+            }
         }
     }
 }
@@ -285,6 +304,11 @@ static int _PathCchCanonicalizeEx_Initialized = 0;
 typedef HRESULT(__stdcall *PPathCchCanonicalizeEx) (PWSTR pszPathOut, size_t cchPathOut,
     PCWSTR pszPathIn, unsigned long dwFlags);
 static PPathCchCanonicalizeEx _PathCchCanonicalizeEx;
+
+static int _PathCchCanonicalize_Initialized = 0;
+typedef HRESULT(__stdcall *PPathCchCanonicalize) (PWSTR pszPathOut, size_t cchPathOut,
+    PCWSTR pszPathIn);
+static PPathCchCanonicalize _PathCchCanonicalize;
 
 /* Call PathCchCanonicalizeEx(path): remove navigation elements such as "."
    and ".." to produce a direct, well-formed path. */
@@ -312,8 +336,22 @@ canonicalize(wchar_t *buffer, const wchar_t *path)
         }
     }
     else {
-        if (!PathCanonicalizeW(buffer, path)) {
-            return INIT_ERR_BUFFER_OVERFLOW();
+        if (_PathCchCanonicalize_Initialized == 0) {
+            HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
+                                             LOAD_LIBRARY_SEARCH_SYSTEM32);
+            if (pathapi) {
+                _PathCchCanonicalize = (PPathCchCanonicalize)GetProcAddress(pathapi, "PathCchCanonicalize");
+            }
+            else {
+                _PathCchCanonicalize = NULL;
+            }
+            _PathCchCanonicalize_Initialized = 1;
+        }
+        
+        if (_PathCchCanonicalize) {
+            if (FAILED(_PathCchCanonicalize(buffer, MAXPATHLEN + 1, path))) {
+                return INIT_ERR_BUFFER_OVERFLOW();
+            }
         }
     }
     return _PyStatus_OK();
