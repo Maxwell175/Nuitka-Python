@@ -102,7 +102,7 @@ def run_rebuild():
     # Scan sys.path for any more lingering static libs.
     for path in list(reversed(sys.path)) + extra_scan_dirs:
         # Ignore the working directory so we don't grab duplicate stuff.
-        if path == os.getcwd() or installDir == path or path in installDir:
+        if path == os.getcwd() or installDir == path or path in installDir or "pip-install-" in path:
             continue
         for file in find_files(
                 path, "*.lib" if platform.system() == "Windows" else "*.a"
