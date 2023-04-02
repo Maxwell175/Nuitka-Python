@@ -101,7 +101,8 @@ def run_rebuild():
 
     # Scan sys.path for any more lingering static libs.
     for path in list(reversed(sys.path)) + extra_scan_dirs:
-        # Ignore the working directory so we don't grab duplicate stuff.
+        # Ignore the working directory so we don't grab duplicate stuff. Also ignore the pip temp path that is
+        # injected during a pip install.
         if path == os.getcwd() or installDir == path or path in installDir or "pip-install-" in path:
             continue
         for file in find_files(
