@@ -188,7 +188,7 @@ def download_file(url, destination):
             raise
     except URLError as e:
         # Seems that macOS throws this error instead for file:// links. :(
-        if 'Errno 2' in str(e.reason):
+        if 'Errno 2' in str(e.reason) or 'WinError 3' in str(e.reason):
             raise NoSuchURL(url)
         else:
             raise
