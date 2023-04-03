@@ -192,6 +192,11 @@ def download_file(url, destination):
             raise NoSuchURL(url)
         else:
             raise
+    except OSError as e:
+        if e.errno == 2:
+            raise NoSuchURL(url)
+        else:
+            raise
 
     return destination_file
 
