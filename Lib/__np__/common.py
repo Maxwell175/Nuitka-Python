@@ -152,7 +152,7 @@ def download_file(url, destination):
         from urllib.request import URLError, HTTPError, Request, urlopen
 
     try:
-        my_print("Attempting to download '%s'." % url, style="blue")
+        my_print(f"Attempting to download '{url}'.", style="blue")
 
         req = Request(url, headers={"User-Agent": "Nuitka-Python"})
         with contextlib.closing(urlopen(req)) as fp:
@@ -176,11 +176,11 @@ def download_file(url, destination):
             with open(destination_file, "wb") as out_file:
                 bs = 1024 * 8
                 while True:
-                    block = fp.read(bs)
-                    if not block:
-                        break
-                    out_file.write(block)
+                    if block := fp.read(bs):
+                        out_file.write(block)
 
+                    else:
+                        break
     except HTTPError as e:
         if e.code == 404:
             raise NoSuchURL(url)
@@ -310,7 +310,7 @@ def run_build_tool_exe(tool_name, exe, *args, **kwargs):
 
 def apply_patch(patch_file, directory):
     """Apply a patch file to a directory."""
-    my_print("Applying patch '%s' to '%s'" % (patch_file, directory))
+    my_print(f"Applying patch '{patch_file}' to '{directory}'")
     with open(patch_file, "rb") as stdin:
         run_build_tool_exe(
             "patch",
@@ -358,10 +358,7 @@ def shall_link_statically(name):
     import fnmatch
 
     static_pattern = os.environ.get("NUITKA_PYTHON_STATIC_PATTERN")
-    if not static_pattern or not fnmatch.fnmatch(name, static_pattern):
-        return False
-
-    return True
+    return bool(static_pattern and fnmatch.fnmatch(name, static_pattern))
 
 
 def write_linker_json(
@@ -369,7 +366,7 @@ def write_linker_json(
 ):
     import json
 
-    with open(result_path + ".link.json", "w") as f:
+    with open(f"{result_path}.link.json", "w") as f:
         json.dump(
             {
                 "libraries": libraries,
