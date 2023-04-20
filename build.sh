@@ -222,3 +222,6 @@ $ELEVATE ln -s base "$target/dependency_libs/ffi"
 $ELEVATE ln -s base "$target/dependency_libs/zlib"
 $ELEVATE ln -s base "$target/dependency_libs/iconv"
 $ELEVATE ln -s base "$target/dependency_libs/gettext"
+
+
+$ELEVATE "$target/bin/python${long_version}" -m rebuildpython
