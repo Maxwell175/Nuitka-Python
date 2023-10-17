@@ -7,7 +7,7 @@ if [ "$arch" = "" ]; then
   if [ "$(arch)" = "arm64" ]; then
     arch=arm64
   else
-    arch=x86-64
+    arch=x86_64
   fi
 fi
 
