@@ -1347,7 +1347,7 @@ class PyBuildExt(build_ext):
         # These are extensions are required to bootstrap the interpreter or
         # build process.
         self.detect_simple_extensions()
-        self.detect_test_extensions()
+        #self.detect_test_extensions()
         self.detect_readline_curses()
         self.detect_crypt()
         self.detect_openssl_hashlib()
@@ -1368,8 +1368,8 @@ class PyBuildExt(build_ext):
         # Uncomment the next line if you want to play with xxmodule.c
 #        self.add(Extension('xx', ['xxmodule.c']))
 
-        self.addext(Extension('xxlimited', ['xxlimited.c']))
-        self.addext(Extension('xxlimited_35', ['xxlimited_35.c']))
+        #self.addext(Extension('xxlimited', ['xxlimited.c']))
+        #self.addext(Extension('xxlimited_35', ['xxlimited_35.c']))
 
     def detect_tkinter(self):
         self.addext(Extension('_tkinter', ['_tkinter.c', 'tkappinit.c']))

@@ -586,7 +586,7 @@ LIBEXPAT_HEADERS= \
 # Default target
 all:		@DEF_MAKE_ALL_RULE@
 build_all:	check-clean-src $(BUILDPYTHON) platform oldsharedmods sharedmods \
-		gdbhooks Programs/_testembed python-config
+		gdbhooks python-config
 build_wasm: check-clean-src $(BUILDPYTHON) platform oldsharedmods python-config
 
 # Check that the source is clean when building out of source.
@@ -1370,7 +1370,7 @@ regen-keyword:
 	$(UPDATE_FILE) $(srcdir)/Lib/keyword.py $(srcdir)/Lib/keyword.py.new
 
 .PHONY: regen-stdlib-module-names
-regen-stdlib-module-names: all Programs/_testembed
+regen-stdlib-module-names: all
 	# Regenerate Python/stdlib_module_names.h
 	# using Tools/scripts/generate_stdlib_module_names.py
 	$(RUNSHARED) ./$(BUILDPYTHON) \
@@ -1938,8 +1938,7 @@ LIBSUBDIRS=	asyncio \
 		wsgiref \
 		$(XMLLIBSUBDIRS) \
 		xmlrpc \
-		zoneinfo \
-		__phello__
+		zoneinfo
 TESTSUBDIRS=	ctypes/test \
 		distutils/tests \
 		idlelib/idle_test \
