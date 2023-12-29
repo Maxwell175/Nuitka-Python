@@ -350,19 +350,7 @@ class InstallRequirement(_InstallRequirement):
         os.environ["NUITKA_PYTHON_STATIC_PATTERN"] = static_pattern or ""
 
         try:
-            result = build_script_module.run(
-                self,
-                install_temp_dir,
-                self.source_dir,
-                install_options,
-                global_options,
-                root,
-                home,
-                prefix,
-                warn_script_location,
-                use_user_site,
-                pycompile,
-            )
+            result = build_script_module.run(install_temp_dir, self.source_dir)
         finally:
             if build_script_module_name in sys.modules:
                 del sys.modules[build_script_module_name]
