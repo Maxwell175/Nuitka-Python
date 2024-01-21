@@ -1352,7 +1352,7 @@ class PyBuildExt(build_ext):
         self.detect_crypt()
         self.detect_openssl_hashlib()
         self.detect_hash_builtins()
-        self.detect_dbm_gdbm()
+        #self.detect_dbm_gdbm()
         self.detect_sqlite()
         self.detect_platform_specific_exts()
         self.detect_nis()

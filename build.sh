@@ -35,21 +35,21 @@ export "PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig"
 mkdir -p dep-build
 cd dep-build
 
-if [ ! -d readline-8.2 ]; then
-curl https://ftp.gnu.org/gnu/readline/readline-8.2.tar.gz -o readline.tar.gz
-tar -xf readline.tar.gz
-cd readline-8.2
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(nproc --all)
-make install
-cd ..
-fi
-
 if [ ! -d ncurses-6.4 ]; then
 curl https://ftp.gnu.org/gnu/ncurses/ncurses-6.4.tar.gz -o ncurses.tar.gz
 tar -xf ncurses.tar.gz
 cd ncurses-6.4
 ./configure --prefix=${PREFIX} --disable-shared --enable-termcap --enable-widec --enable-getcap
+make -j$(nproc --all)
+make install
+cd ..
+fi
+
+if [ ! -d editline-1.17.1 ]; then
+curl -L https://github.com/troglobit/editline/releases/download/1.17.1/editline-1.17.1.tar.gz -o editline.tar.gz
+tar -xf editline.tar.gz
+cd editline-1.17.1
+./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
 cd ..
@@ -72,18 +72,6 @@ cd openssl-3.1.4
 ./Configure --prefix=${PREFIX} --libdir=lib linux-x86_64 enable-ec_nistp_64_gcc_128 no-shared no-tests
 make depend all -j$(nproc --all)
 make install
-cd ..
-fi
-
-if [ ! -d gdbm-1.23 ]; then
-curl https://ftp.gnu.org/gnu/gdbm/gdbm-1.23.tar.gz -o gdbm.tar.gz
-tar -xf gdbm.tar.gz
-cd gdbm-1.23
-./configure --prefix=${PREFIX} --disable-shared --enable-libgdbm-compat
-make -j$(nproc --all)
-make install
-mkdir -p ${PREFIX}/include/gdbm
-cp ./compat/dbm.h ./compat/ndbm.h ${PREFIX}/include/gdbm
 cd ..
 fi
 
@@ -137,26 +125,6 @@ make install
 cd ..
 fi
 
-if [ ! -d libiconv-1.17 ]; then
-curl https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz -o iconv.tar.gz
-tar -xf iconv.tar.gz
-cd libiconv-1.17
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(nproc --all)
-make install
-cd ..
-fi
-
-if [ ! -d gettext-0.22.3 ]; then
-curl https://ftp.gnu.org/pub/gnu/gettext/gettext-0.22.3.tar.gz -o gettext.tar.gz
-tar -xf gettext.tar.gz
-cd gettext-0.22.3
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(nproc --all)
-make install
-cd ..
-fi
-
 if [ ! -d libxcrypt-4.4.36 ]; then
 curl -L https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz -o libxcrypt.tar.xz
 tar -xf libxcrypt.tar.xz
@@ -164,15 +132,6 @@ cd libxcrypt-4.4.36
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
-cd ..
-fi
-
-if [ ! -d bzip2-bzip2-1.0.8 ]; then
-curl https://gitlab.com/bzip2/bzip2/-/archive/bzip2-1.0.8/bzip2-bzip2-1.0.8.tar.gz -o bzip2.tar.gz
-tar -xf bzip2.tar.gz
-cd bzip2-bzip2-1.0.8
-make -j$(nproc --all)
-make install PREFIX=${PREFIX}
 cd ..
 fi
 
@@ -206,24 +165,14 @@ make install
 cd ..
 fi
 
-if [ ! -d tcl8.6.13 ]; then
-curl -L http://downloads.sourceforge.net/project/tcl/Tcl/8.6.13/tcl8.6.13-src.tar.gz -o tcl.tar.gz
-tar -xf tcl.tar.gz
-cd tcl8.6.13/unix
-./configure --prefix=${PREFIX} --enable-shared=no --enable-threads
+if [ ! -d editline-1.17.1 ]; then
+curl -L https://github.com/troglobit/editline/releases/download/1.17.1/editline-1.17.1.tar.gz -o editline.tar.gz
+tar -xf editline.tar.gz
+cd editline-1.17.1
+./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
-cd ../..
-fi
-
-if [ ! -d tk8.6.13 ]; then
-curl -L http://downloads.sourceforge.net/project/tcl/Tcl/8.6.13/tk8.6.13-src.tar.gz -o tk.tar.gz
-tar -xf tk.tar.gz
-cd tk8.6.13/unix
-./configure --prefix=${PREFIX} --enable-shared=no --enable-threads --with-tcl=${PREFIX}/lib
-make -j$(nproc --all)
-make install
-cd ../..
+cd ..
 fi
 
 if [ ! -d xtrans-1.5.0 ]; then
@@ -251,6 +200,16 @@ curl -L https://xorg.freedesktop.org/releases/individual/lib/libXScrnSaver-1.2.4
 tar -xf libXScrnSaver.tar.gz
 cd libXScrnSaver-1.2.4
 ./configure --prefix=${PREFIX} --disable-shared
+make -j$(nproc --all)
+make install
+cd ..
+fi
+
+if [ ! -d freetype-2.13.2 ]; then
+curl -L https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz -o freetype.tar.gz
+tar -xf freetype.tar.gz
+cd freetype-2.13.2
+./configure --prefix=${PREFIX} --disable-shared --with-brotli=no
 make -j$(nproc --all)
 make install
 cd ..
@@ -336,20 +295,40 @@ make install
 cd ..
 fi
 
-if [ ! -d freetype-2.13.2 ]; then
-curl -L https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz -o freetype.tar.gz
-tar -xf freetype.tar.gz
-cd freetype-2.13.2
-./configure --prefix=${PREFIX} --disable-shared --with-brotli=no
+if [ ! -d tcl8.6.13 ]; then
+curl -L http://downloads.sourceforge.net/project/tcl/Tcl/8.6.13/tcl8.6.13-src.tar.gz -o tcl.tar.gz
+tar -xf tcl.tar.gz
+cd tcl8.6.13/unix
+./configure --prefix=${PREFIX} --enable-shared=no --enable-threads
 make -j$(nproc --all)
 make install
-cd ..
+cd ../..
+fi
+
+if [ ! -d tk8.6.13 ]; then
+curl -L http://downloads.sourceforge.net/project/tcl/Tcl/8.6.13/tk8.6.13-src.tar.gz -o tk.tar.gz
+tar -xf tk.tar.gz
+cd tk8.6.13/unix
+./configure --prefix=${PREFIX} --enable-shared=no --enable-threads --with-tcl=${PREFIX}/lib
+make -j$(nproc --all) "X11_LIB_SWITCHES=-l:libX11.a -l:libxcb.a -l:libXss.a -l:libfontconfig.a -l:libXft.a -l:libXext.a -l:libXrandr.a -l:libXau.a -l:libXrender.a -l:libXdmcp.a -l:libfreetype.a -l:libexpat.a -l:libpng.a -l:libharfbuzz.a -l:libX11.a -l:libxcb.a -l:libbz2.a"
+make install
+cd ../..
 fi
 
 if [ ! -d expat-2.5.0 ]; then
 curl -L https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz -o expat.tar.gz
 tar -xf expat.tar.gz
 cd expat-2.5.0
+./configure --prefix=${PREFIX} --disable-shared
+make -j$(nproc --all)
+make install
+cd ..
+fi
+
+if [ ! -d mpdecimal-4.0.0 ]; then
+curl -L https://www.bytereef.org/software/mpdecimal/releases/mpdecimal-4.0.0.tar.gz -o mpdecimal.tar.gz
+tar -xf mpdecimal.tar.gz
+cd mpdecimal-4.0.0
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
@@ -400,7 +379,8 @@ fi
 
 # The UCS4 has best compatibility with wheels on PyPI it seems.
 ./configure "--prefix=$target" --disable-shared --enable-ipv6 --enable-unicode=ucs4 \
-  --enable-optimizations --with-lto --with-computed-gotos --with-fpectl \
+  --enable-optimizations --with-lto --with-computed-gotos --with-fpectl --without-readline \
+  --with-system-expat --with-system-libmpdec
   CC="$CC" \
   CXX="$CXX" \
   CFLAGS="-g $CFLAGS" \
@@ -428,22 +408,19 @@ $ELEVATE mv "$target/lib/python${long_version}/pip.py" "$target/lib/python${long
 $ELEVATE mkdir -p "$target/dependency_libs"
 $ELEVATE cp -r "$(pwd)/../Nuitka-Python-Deps" "$target/dependency_libs/base"
 $ELEVATE ln -s base "$target/dependency_libs/bzip2"
+$ELEVATE ln -s base "$target/dependency_libs/editline"
 $ELEVATE ln -s base "$target/dependency_libs/expat"
 $ELEVATE ln -s base "$target/dependency_libs/fontconfig"
-$ELEVATE ln -s base "$target/dependency_libs/freetype"
-$ELEVATE ln -s base "$target/dependency_libs/gdbm"
-$ELEVATE ln -s base "$target/dependency_libs/gettext"
 $ELEVATE ln -s base "$target/dependency_libs/harfbuzz"
 $ELEVATE ln -s base "$target/dependency_libs/b2"
 $ELEVATE ln -s base "$target/dependency_libs/ffi"
-$ELEVATE ln -s base "$target/dependency_libs/iconv"
+$ELEVATE ln -s base "$target/dependency_libs/mpdecimal"
 $ELEVATE ln -s base "$target/dependency_libs/png"
 $ELEVATE ln -s base "$target/dependency_libs/X11"
 $ELEVATE ln -s base "$target/dependency_libs/xcb"
 $ELEVATE ln -s base "$target/dependency_libs/xcrypt"
 $ELEVATE ln -s base "$target/dependency_libs/ncurses"
 $ELEVATE ln -s base "$target/dependency_libs/openssl"
-$ELEVATE ln -s base "$target/dependency_libs/readline"
 $ELEVATE ln -s base "$target/dependency_libs/sqlite"
 $ELEVATE ln -s base "$target/dependency_libs/tcltk"
 $ELEVATE ln -s base "$target/dependency_libs/uuid"

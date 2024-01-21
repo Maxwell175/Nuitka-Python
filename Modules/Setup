@@ -201,15 +201,15 @@ _crypt _cryptmodule.c -l:libcrypt.a
 _bz2 _bz2module.c -l:libbz2.a
 _ctypes _ctypes/_ctypes.c _ctypes/callbacks.c _ctypes/callproc.c _ctypes/stgdict.c _ctypes/cfield.c -ldl -l:libffi.a -DHAVE_FFI_PREP_CIF_VAR -DHAVE_FFI_PREP_CLOSURE_LOC -DHAVE_FFI_CLOSURE_ALLOC
 # The _dbm module supports NDBM, GDBM with compat module, and Berkeley DB.
-_dbm _dbmmodule.c -l:libgdbm_compat.a -DUSE_GDBM_COMPAT
-_gdbm _gdbmmodule.c -l:libgdbm.a
+#_dbm _dbmmodule.c -l:libgdbm_compat.a -DUSE_GDBM_COMPAT
+#_gdbm _gdbmmodule.c -l:libgdbm.a
 _lzma _lzmamodule.c -l:liblzma.a
 _uuid _uuidmodule.c -l:libuuid.a
 zlib  zlibmodule.c -l:libz.a
 
 # The readline module also supports libeditline (-leditline).
 # Some systems may require -ltermcap or -ltermlib.
-readline readline.c -l:libreadline.a
+#readline readline.c -l:libeditline.a -DWITH_EDITLINE
 
 # OpenSSL bindings
 #_ssl _ssl.c $(OPENSSL_INCLUDES) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
