@@ -107,6 +107,7 @@ else:
 # NOTE: site.py has copy of this function.
 # Sync it when modify this function.
 def _getuserbase():
+    return None  # Do not try to load stuff from user dirs to avoid contamination from system python.
     env_base = os.environ.get("PYTHONUSERBASE", None)
     if env_base:
         return env_base
