@@ -9,12 +9,14 @@ from importlib import resources
 
 
 __all__ = ["version", "bootstrap"]
-_PACKAGE_NAMES = ('setuptools', 'pip')
-_SETUPTOOLS_VERSION = "65.5.0"
-_PIP_VERSION = "24.0"
+_PACKAGE_NAMES = ('setuptools', 'pip', 'wheel')
+_SETUPTOOLS_VERSION = "69.0.3"
+_PIP_VERSION = "23.3.2"
+_WHEEL_VERSION = "0.42.0"
 _PROJECTS = [
     ("setuptools", _SETUPTOOLS_VERSION, "py3"),
     ("pip", _PIP_VERSION, "py3"),
+    ("wheel", _WHEEL_VERSION, "py3"),
 ]
 
 # Packages bundled in ensurepip._bundled have wheel_name set.
