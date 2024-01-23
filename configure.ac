@@ -5709,7 +5709,7 @@ if test "$Py_DEBUG" = 'true' -a "$with_trace_refs" != "yes"; then
 fi
 
 AC_SUBST(EXT_SUFFIX)
-EXT_SUFFIX=.${SOABI}${SHLIB_SUFFIX}
+EXT_SUFFIX=.${SOABI}.a
 
 AC_MSG_CHECKING(LDVERSION)
 LDVERSION='$(VERSION)$(ABIFLAGS)'
