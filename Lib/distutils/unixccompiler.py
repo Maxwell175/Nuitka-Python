@@ -64,7 +64,7 @@ class UnixCCompiler(CCompiler):
 
     if sys.platform[:6] == "darwin":
         executables['ranlib'] = ["ranlib"]
-        
+
     # Nuitka: Make sure to use the original settings
     executables["compiler"] = sysconfig.get_config_var("CC")
     executables["compiler_so"] = sysconfig.get_config_var("CC")
@@ -186,6 +186,7 @@ class UnixCCompiler(CCompiler):
                 if target_desc == CCompiler.EXECUTABLE:
                     linker = self.linker_exe[:]
                 else:
+                    raise NotImplemented("No Shared Libraries in Nuitka-Python!")
                     linker = self.linker_so[:]
                 if target_lang == "c++" and self.compiler_cxx:
                     # skip over environment variable settings if /usr/bin/env
