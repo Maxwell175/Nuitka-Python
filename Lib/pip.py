@@ -5,6 +5,7 @@ import sys
 import sysconfig
 import warnings
 import platform
+import rebuildpython
 
 import __np__
 
@@ -20,18 +21,6 @@ import pip as _pip
 
 del sys.path[0]
 sys.modules["pip"] = _pip
-
-try:
-    import pip._internal.pyproject
-
-    def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
-        return None
-
-    pip._internal.pyproject.load_pyproject_toml = load_pyproject_toml
-except:
-    pass
-
-import pip._internal.req.req_install
 
 
 def urlretrieve(url, output_filename):
@@ -261,127 +250,99 @@ def install_dependency(name):
         f.write(package_index["version"])
 
 
-_InstallRequirement = pip._internal.req.req_install.InstallRequirement
+from pip._internal.req.req_install import InstallRequirement
+from typing import Iterable, List, Optional, Tuple
+import pip._internal.wheel_builder
+_orig_build_one_inside_env = pip._internal.wheel_builder._build_one_inside_env
 
-
-class InstallRequirement(_InstallRequirement):
-    def install(
-        self,
-        install_options,
-        global_options=None,
-        root=None,
-        home=None,
-        prefix=None,
-        warn_script_location=True,
-        use_user_site=False,
-        pycompile=True,
-    ):
-        fallback = False
-
-        try:
-            package_index = getPackageJson("packages", self.name)
-        except __np__.NoSuchURL:
+def _build_one_inside_env(
+    req: InstallRequirement,
+    output_dir: str,
+    build_options: List[str],
+    global_options: List[str],
+    editable: bool,
+) -> Optional[str]:
+    fallback = False
+    if req.name == "setuptools":
+        raise NotImplementedError("setuptools not yet supported")
+    try:
+        package_index = getPackageJson("packages", req.name)
+    except __np__.NoSuchURL:
+        fallback = True
+    except:
+        if req.name == "certifi":
             fallback = True
-        except:
-            if self.name == "certifi":
-                fallback = True
-            else:
-                throw
+        else:
+            throw
 
-        if fallback or not self.source_dir:
-            __np__.my_print("FALLBACK to standard install for %s" % self.name)
+    if fallback or not req.source_dir:
+        __np__.my_print("FALLBACK to standard install for %s" % req.name)
 
-            return _InstallRequirement.install(
-                self,
-                install_options,
-                global_options,
-                root,
-                home,
-                prefix,
-                warn_script_location,
-                use_user_site,
-                pycompile,
-            )
+        return _orig_build_one_inside_env(req, output_dir, build_options, global_options, editable)
 
-        matched_source = None
-        for source in package_index["scripts"]:
-            for key, value_glob in source["metadata"].items():
-                if not fnmatch.fnmatch(self.metadata[key], value_glob):
-                    matched_metadata = False
-                    break
-            else:
-                matched_metadata = True
-
-            if matched_metadata:
-                matched_source = source
+    matched_source = None
+    for source in package_index["scripts"]:
+        for key, value_glob in source["metadata"].items():
+            if not fnmatch.fnmatch(req.metadata[key], value_glob):
+                matched_metadata = False
                 break
+        else:
+            matched_metadata = True
 
-        install_temp_dir = os.path.dirname(self.source_dir)
+        if matched_metadata:
+            matched_source = source
+            break
 
-        if "build_tools" in matched_source:
-            for dep in matched_source["build_tools"]:
-                install_build_tool(dep)
+    install_temp_dir = os.path.dirname(req.source_dir)
 
-        if "dependencies" in matched_source:
-            for dep in matched_source["dependencies"]:
-                install_dependency(dep)
+    if "build_tools" in matched_source:
+        for dep in matched_source["build_tools"]:
+            install_build_tool(dep)
 
-        for file in matched_source["files"]:
-            package_dir_url = getPackageUrl("packages", self.name)
-            urlretrieve(
-                "{package_dir_url}/{file}".format(**locals()),
-                os.path.join(install_temp_dir, file),
-            )
+    if "dependencies" in matched_source:
+        for dep in matched_source["dependencies"]:
+            install_dependency(dep)
 
-        build_script_module_name = getBuildScriptName(install_temp_dir, self.name)
-
-        initcwd = os.getcwd()
-        initenviron = dict(os.environ)
-        build_script_module = importFileAsModule(
-            build_script_module_name,
-            os.path.join(install_temp_dir, matched_source["build_script"]),
+    for file in matched_source["files"]:
+        package_dir_url = getPackageUrl("packages", req.name)
+        urlretrieve(
+            "{package_dir_url}/{file}".format(**locals()),
+            os.path.join(install_temp_dir, file),
         )
 
-        static_pattern = matched_source.get("static_pattern")
-        if static_pattern is None and os.name == "nt":
-            static_pattern = "*"
+    build_script_module_name = getBuildScriptName(install_temp_dir, req.name)
 
-        # Put to empty, to avoid need to remove it and for easier manual usage.
-        os.environ["NUITKA_PYTHON_STATIC_PATTERN"] = static_pattern or ""
+    initcwd = os.getcwd()
+    initenviron = dict(os.environ)
+    build_script_module = importFileAsModule(
+        build_script_module_name,
+        os.path.join(install_temp_dir, matched_source["build_script"]),
+    )
 
+    static_pattern = matched_source.get("static_pattern")
+    if static_pattern is None and os.name == "nt":
+        static_pattern = "*"
+
+    # Put to empty, to avoid need to remove it and for easier manual usage.
+    os.environ["NUITKA_PYTHON_STATIC_PATTERN"] = static_pattern or ""
+
+    try:
+        result = build_script_module.run(install_temp_dir, req.source_dir)
+    finally:
+        if build_script_module_name in sys.modules:
+            del sys.modules[build_script_module_name]
         try:
-            result = build_script_module.run(install_temp_dir, self.source_dir)
-        finally:
-            if build_script_module_name in sys.modules:
-                del sys.modules[build_script_module_name]
-            try:
-                del build_script_module
-            except NameError:
-                pass
-            os.chdir(initcwd)
-            os.environ.clear()
-            os.environ.update(initenviron)
+            del build_script_module
+        except NameError:
+            pass
+        os.chdir(initcwd)
+        os.environ.clear()
+        os.environ.update(initenviron)
 
-        if result:
-            _InstallRequirement.install(
-                self,
-                install_options,
-                global_options,
-                root,
-                home,
-                prefix,
-                warn_script_location,
-                use_user_site,
-                pycompile,
-            )
-
-        if not int(os.environ.get("NUITKA_PYTHON_MANUAL_REBUILD", "0")):
-            import rebuildpython
-
-            rebuildpython.run_rebuild()
+    return result
 
 
-pip._internal.req.req_install.InstallRequirement = InstallRequirement
+pip._internal.wheel_builder._build_one_inside_env = _build_one_inside_env
 
 
 import pip._internal.index.package_finder
@@ -391,7 +352,7 @@ from pip._internal.models.link import Link
 
 _PackageFinder = pip._internal.index.package_finder.PackageFinder
 
-
+"""
 def build_stub(
     requirements,  # type: Iterable[InstallRequirement]
     wheel_cache,  # type: WheelCache
@@ -403,8 +364,8 @@ def build_stub(
         r.use_pep517 = False
     return [], requirements
 
-
 wheel_builder.build = build_stub
+"""
 
 
 class PackageFinder(_PackageFinder):
@@ -429,6 +390,34 @@ class PackageFinder(_PackageFinder):
 
 
 pip._internal.index.package_finder.PackageFinder = PackageFinder
+
+my_path = os.path.abspath(__file__)
+
+def get_runnable_pip() -> str:
+    return my_path
+
+import pip._internal.build_env
+pip._internal.build_env.get_runnable_pip = get_runnable_pip
+
+
+import pip._internal.req.req_install
+orig_install = pip._internal.req.req_install.InstallRequirement.install
+
+def install(
+        self,
+        global_options = None,
+        root = None,
+        home = None,
+        prefix = None,
+        warn_script_location = True,
+        use_user_site = False,
+        pycompile = True,
+    ):
+    orig_install(self, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
+
+    rebuildpython.run_rebuild()
+
+pip._internal.req.req_install.InstallRequirement.install = install
 
 
 def main():
