@@ -5,6 +5,8 @@ import ctypes
 import distutils
 import distutils.ccompiler
 import fnmatch
+import glob
+import hashlib
 import json
 import os
 import platform
@@ -16,6 +18,10 @@ import tempfile
 
 MOVEFILE_DELAY_UNTIL_REBOOT = 4
 
+if platform.system() == "Windows":
+    interpreter_prefix = sysconfig.get_config_var("srcdir")
+else:
+    interpreter_prefix = sysconfig.get_config_var("prefix")
 
 def find_files(directory, pattern):
     for root, dirs, files in os.walk(directory):
@@ -57,7 +63,48 @@ def getPythonInitFunctions(compiler, filename):
     return initFunctions
 
 
+def get_lib_hash():
+    hash_string = ""
+    read_files = set()
+
+    extra_scan_dirs = []
+    if platform.system() == "Windows":
+        extra_scan_dirs.append(os.path.join(sysconfig.get_config_var('srcdir'), 'libs'))
+    else:
+        extra_scan_dirs.append(interpreter_prefix)
+
+    # Scan sys.path for any more lingering static libs.
+    for path in list(reversed(sys.path)) + extra_scan_dirs:
+        # Ignore the working directory so we don't grab duplicate stuff. Also ignore the pip temp path that is
+        # injected during a pip install.
+        if path == os.getcwd() or "pip-install-" in path:
+            continue
+
+        for lib_file in list(glob.glob(os.path.join("**", "*.a"), root_dir=path, recursive=True)) + list(glob.glob(os.path.join("**", "*.lib"), root_dir=path, recursive=True)):
+            if os.path.basename(lib_file) in read_files:
+                continue
+
+            with open(os.path.join(path, lib_file), 'rb') as f:
+                hash_string += hashlib.file_digest(f, "sha512").hexdigest()
+            read_files.add(os.path.basename(lib_file))
+
+    return hashlib.sha256(hash_string.encode('ascii')).hexdigest()
+
 def run_rebuild():
+    try:
+        with open(os.path.join(interpreter_prefix, "link.json"), 'r') as f:
+            old_link_data = json.load(f)
+    except FileNotFoundError:
+        old_link_data = {}
+
+    old_hash = old_link_data.get("lib_hash")
+    new_hash = get_lib_hash()
+
+    # Try to avoid building if nothing has changed.
+    if old_hash == new_hash:
+        print("No native library changes detected. Not rebuilding interpreter.")
+        return
+
     installDir = os.path.dirname(sys.executable)
 
     has_compiler_vars = sysconfig.get_config_var("CC") and sysconfig.get_config_var("CXX")
@@ -130,12 +177,12 @@ def run_rebuild():
                 dirpath, filename = os.path.split(relativePath)
                 if platform.system() != "Windows" and filename.startswith("lib"):
                     filename = filename[3:]
+                if ext_suffix and filename.endswith(ext_suffix):
+                    filename = filename[: len(ext_suffix) * -1]
                 if filename.endswith(".a"):
                     filename = filename[:-2]
                 if filename.endswith(".lib"):
                     filename = filename[:-4]
-                if ext_suffix and filename.endswith(ext_suffix):
-                    filename = filename[: len(ext_suffix) * -1]
                 relative_path = filename
                 if dirpath:
                     relative_path = dirpath.replace("\\", ".").replace("/", ".") + "." + relative_path
@@ -305,11 +352,6 @@ extern "C" {
         f.write(staticinitheader)
 
     print("Compiling new interpreter...")
-
-    if platform.system() == "Windows":
-        interpreter_prefix = sysconfig.get_config_var("srcdir")
-    else:
-        interpreter_prefix = sysconfig.get_config_var("prefix")
 
     build_dir = os.path.join(interpreter_prefix, "interpreter_build")
 
@@ -537,7 +579,8 @@ extern "C" {
                 "libraries": link_libs,
                 "library_dirs": library_dirs,
                 "link_flags": link_flags,
-                "compile_flags": compile_flags
+                "compile_flags": compile_flags,
+                "lib_hash": new_hash
             },
             f,
         )
