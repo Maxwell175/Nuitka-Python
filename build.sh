@@ -28,7 +28,7 @@ set -x
 # the python build process ends up running a find -delete that
 # happens to also delete all the static libraries that we built.
 export "PREFIX=$(pwd)/../Nuitka-Python-Deps"
-export "CFLAGS=-I${PREFIX}/include"
+export "CFLAGS=-I${PREFIX}/include -fPIC"
 export "LDFLAGS=-L${PREFIX}/lib"
 export "PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig"
 
