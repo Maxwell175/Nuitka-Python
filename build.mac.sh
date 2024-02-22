@@ -108,7 +108,7 @@ cd ..
 fi
 
 if [ ! -d zlib-1.2.12 ]; then
-curl -L https://zlib.net/zlib-1.2.12.tar.gz -o zlib.tar.gz
+curl -L https://zlib.net/fossils/zlib-1.2.12.tar.gz -o zlib.tar.gz
 tar -xf zlib.tar.gz
 cd zlib-1.2.12
 ./configure --prefix=${PREFIX} --static
