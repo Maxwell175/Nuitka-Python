@@ -215,6 +215,16 @@ make install
 cd ..
 fi
 
+if [ ! -d fontconfig-2.15.0 ]; then
+curl -L https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.15.0.tar.gz -o fontconfig.tar.gz
+tar -xf fontconfig.tar.gz
+cd fontconfig-2.15.0
+./configure --prefix=${PREFIX} --disable-shared
+make -j$(nproc --all)
+make install
+cd ..
+fi
+
 if [ ! -d libXft-2.3.8 ]; then
 curl -L https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.8.tar.gz -o libXft.tar.gz
 tar -xf libXft.tar.gz
@@ -279,16 +289,6 @@ if [ ! -d libXrender-0.9.11 ]; then
 curl -L https://xorg.freedesktop.org/releases/individual/lib/libXrender-0.9.11.tar.gz -o libXrender.tar.gz
 tar -xf libXrender.tar.gz
 cd libXrender-0.9.11
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(nproc --all)
-make install
-cd ..
-fi
-
-if [ ! -d fontconfig-2.15.0 ]; then
-curl -L https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.15.0.tar.gz -o fontconfig.tar.gz
-tar -xf fontconfig.tar.gz
-cd fontconfig-2.15.0
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
