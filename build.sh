@@ -13,6 +13,7 @@ for pkg in $pkgs; do
   fi
 done
 if "$install"; then
+  sudo apt update
   sudo apt install $pkgs
 fi
 
