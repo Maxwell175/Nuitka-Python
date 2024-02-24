@@ -34,6 +34,12 @@ export "CPPFLAGS=-I${PREFIX}/include"
 export "LDFLAGS=-L${PREFIX}/lib"
 export "PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
 
+mkdir -p ${PREFIX}/lib
+
+if [ ! -h ${PREFIX}/lib64 ]; then
+  ln -s lib ${PREFIX}/lib64
+fi
+
 mkdir -p dep-build
 cd dep-build
 
@@ -44,6 +50,7 @@ cd ncurses-6.4
 ./configure --prefix=${PREFIX} --disable-shared --enable-termcap --enable-widec --enable-getcap
 make -j$(nproc --all)
 make install
+ln -s ncursesw/* ${PREFIX}/include/
 cd ..
 fi
 
