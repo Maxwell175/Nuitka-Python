@@ -227,6 +227,16 @@ make install
 cd ..
 fi
 
+if [ ! -d xcb-proto-1.16.0 ]; then
+curl -L https://xorg.freedesktop.org/archive/individual/proto/xcb-proto-1.16.0.tar.gz -o xcb-proto.tar.gz
+tar -xf xcb-proto.tar.gz
+cd xcb-proto-1.16.0
+./configure --prefix=${PREFIX} --disable-shared
+make -j$(nproc --all)
+make install
+cd ..
+fi
+
 if [ ! -d libxcb-1.16 ]; then
 curl -L https://xorg.freedesktop.org/releases/individual/lib/libxcb-1.16.tar.gz -o libxcb.tar.gz
 tar -xf libxcb.tar.gz
