@@ -32,7 +32,7 @@ export "CFLAGS=-I${PREFIX}/include -fPIC"
 export "CXXFLAGS=-I${PREFIX}/include -fPIC"
 export "CPPFLAGS=-I${PREFIX}/include" 
 export "LDFLAGS=-L${PREFIX}/lib"
-export "PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig"
+export "PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
 
 mkdir -p dep-build
 cd dep-build
@@ -317,16 +317,6 @@ make install
 cd ../..
 fi
 
-if [ ! -d tk8.6.13 ]; then
-curl -L http://downloads.sourceforge.net/project/tcl/Tcl/8.6.13/tk8.6.13-src.tar.gz -o tk.tar.gz
-tar -xf tk.tar.gz
-cd tk8.6.13/unix
-./configure --prefix=${PREFIX} --enable-shared=no --enable-threads --with-tcl=${PREFIX}/lib
-make -j$(nproc --all) "X11_LIB_SWITCHES=-l:libX11.a -l:libxcb.a -l:libXss.a -l:libfontconfig.a -l:libXft.a -l:libXext.a -l:libXrandr.a -l:libXau.a -l:libXrender.a -l:libXdmcp.a -l:libfreetype.a -l:libexpat.a -l:libpng.a -l:libharfbuzz.a -l:libX11.a -l:libxcb.a -l:libbz2.a"
-make install
-cd ../..
-fi
-
 if [ ! -d expat-2.5.0 ]; then
 curl -L https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz -o expat.tar.gz
 tar -xf expat.tar.gz
@@ -335,6 +325,16 @@ cd expat-2.5.0
 make -j$(nproc --all)
 make install
 cd ..
+fi
+
+if [ ! -d tk8.6.13 ]; then
+curl -L http://downloads.sourceforge.net/project/tcl/Tcl/8.6.13/tk8.6.13-src.tar.gz -o tk.tar.gz
+tar -xf tk.tar.gz
+cd tk8.6.13/unix
+./configure --prefix=${PREFIX} --enable-shared=no --enable-threads --with-tcl=${PREFIX}/lib
+make -j$(nproc --all) "X11_LIB_SWITCHES=-l:libX11.a -l:libxcb.a -l:libXss.a -l:libfontconfig.a -l:libXft.a -l:libXext.a -l:libXrandr.a -l:libXau.a -l:libXrender.a -l:libXdmcp.a -l:libfreetype.a -l:libexpat.a -l:libpng.a -l:libharfbuzz.a -l:libX11.a -l:libxcb.a -l:libbz2.a"
+make install
+cd ../..
 fi
 
 if [ ! -d mpdecimal-4.0.0 ]; then
