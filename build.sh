@@ -227,20 +227,20 @@ make install
 cd ..
 fi
 
-if [ ! -d libXft-2.3.8 ]; then
-curl -L https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.8.tar.gz -o libXft.tar.gz
-tar -xf libXft.tar.gz
-cd libXft-2.3.8
+if [ ! -d libxcb-1.16 ]; then
+curl -L https://xorg.freedesktop.org/releases/individual/lib/libxcb-1.16.tar.gz -o libxcb.tar.gz
+tar -xf libxcb.tar.gz
+cd libxcb-1.16
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
 cd ..
 fi
 
-if [ ! -d libxcb-1.16 ]; then
-curl -L https://xorg.freedesktop.org/releases/individual/lib/libxcb-1.16.tar.gz -o libxcb.tar.gz
-tar -xf libxcb.tar.gz
-cd libxcb-1.16
+if [ ! -d libXft-2.3.8 ]; then
+curl -L https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.8.tar.gz -o libXft.tar.gz
+tar -xf libXft.tar.gz
+cd libXft-2.3.8
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
