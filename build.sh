@@ -449,3 +449,4 @@ $ELEVATE ln -s base "$target/dependency_libs/zlib"
 
 
 $ELEVATE "$target/bin/python${long_version}" -m rebuildpython
+$ELEVATE "$target/bin/python${long_version}" -m pip install cffi
