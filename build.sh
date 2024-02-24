@@ -29,6 +29,8 @@ set -x
 # happens to also delete all the static libraries that we built.
 export "PREFIX=$(pwd)/../Nuitka-Python-Deps"
 export "CFLAGS=-I${PREFIX}/include -fPIC"
+export "CXXFLAGS=-I${PREFIX}/include -fPIC"
+export "CPPFLAGS=-I${PREFIX}/include" 
 export "LDFLAGS=-L${PREFIX}/lib"
 export "PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig"
 
