@@ -50,7 +50,9 @@ cd ncurses-6.4
 ./configure --prefix=${PREFIX} --disable-shared --enable-termcap --enable-widec --enable-getcap
 make -j$(nproc --all)
 make install
-ln -s ncursesw/* ${PREFIX}/include/
+for header in ${PREFIX}/include/ncursesw/*; do
+    ln -s ncursesw/$(basename $header) ${PREFIX}/include/;
+done
 cd ..
 fi
 
