@@ -358,6 +358,8 @@ extern "C" {
     if os.path.isdir(build_dir):
         shutil.rmtree(build_dir)
 
+    os.makedirs(build_dir)
+
     include_dirs = [sysconfig.get_config_var("INCLUDEPY")]
     macros = [("Py_BUILD_CORE", None)]
 
