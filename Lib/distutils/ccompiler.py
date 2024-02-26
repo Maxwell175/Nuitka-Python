@@ -689,12 +689,7 @@ class CCompiler:
                         extra_postargs=None,
                         build_temp=None,
                         target_lang=None):
-        self.link(CCompiler.SHARED_LIBRARY, objects,
-                  self.library_filename(output_libname, lib_type='shared'),
-                  output_dir,
-                  libraries, library_dirs, runtime_library_dirs,
-                  export_symbols, debug,
-                  extra_preargs, extra_postargs, build_temp, target_lang)
+        raise NotImplementedError
 
 
     def link_shared_object(self,
@@ -710,11 +705,7 @@ class CCompiler:
                            extra_postargs=None,
                            build_temp=None,
                            target_lang=None):
-        self.link(CCompiler.SHARED_OBJECT, objects,
-                  output_filename, output_dir,
-                  libraries, library_dirs, runtime_library_dirs,
-                  export_symbols, debug,
-                  extra_preargs, extra_postargs, build_temp, target_lang)
+        raise NotImplementedError
 
 
     def link_executable(self,
