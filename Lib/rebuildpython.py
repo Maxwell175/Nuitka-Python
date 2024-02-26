@@ -238,6 +238,7 @@ def run_rebuild():
             sysconfig.get_config_var("prefix"),
             sysconfig.get_config_var("LIBDEST"),
             sysconfig.get_config_var("LIBDIR"),
+            os.path.join(sysconfig.get_config_var("prefix"), "dependency_libs", "base", "lib"),
         ]
 
     # Scrape all available libs from the libs directory. We will let the linker worry about filtering out extra symbols.
