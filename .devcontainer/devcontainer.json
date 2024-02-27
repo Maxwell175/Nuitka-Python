@@ -1,0 +1,20 @@
+{
+  "name": "nuitka-python-dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "containerEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "GITHUB_USER": "${localEnv:GITHUB_USER}"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/nuitka/Nuitka-Python,type=bind",
+  "workspaceFolder": "/home/nuitka/Nuitka-Python",
+  "runArgs": ["--name=nuitka-python-dev"],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash"
+      }
+    }
+  }
+}
