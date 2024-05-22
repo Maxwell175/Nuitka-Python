@@ -166,7 +166,7 @@ def download_file(url, destination):
                 )
             else:
                 destination_file = os.path.join(
-                    destination, os.path.basename(fp.geturl())
+                    destination, os.path.basename(fp.geturl()).rsplit("?", 1)[0]
                 )
 
             parent_dir = os.path.dirname(destination_file)
