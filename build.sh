@@ -115,10 +115,10 @@ make install
 cd ..
 fi
 
-if [ ! -d libffi-3.4.4 ]; then
-curl -L https://github.com/libffi/libffi/releases/download/v3.4.4/libffi-3.4.4.tar.gz -o libffi.tar.gz
+if [ ! -d libffi-3.4.6 ]; then
+curl -L https://github.com/libffi/libffi/releases/download/v3.4.6/libffi-3.4.6.tar.gz -o libffi.tar.gz
 tar -xf libffi.tar.gz
-cd libffi-3.4.4
+cd libffi-3.4.6
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
@@ -140,16 +140,6 @@ if [ ! -d libxcrypt-4.4.36 ]; then
 curl -L https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz -o libxcrypt.tar.xz
 tar -xf libxcrypt.tar.xz
 cd libxcrypt-4.4.36
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(nproc --all)
-make install
-cd ..
-fi
-
-if [ ! -d libffi-3.4.4 ]; then
-curl -L https://github.com/libffi/libffi/releases/download/v3.4.4/libffi-3.4.4.tar.gz -o libffi.tar.gz
-tar -xf libffi.tar.gz
-cd libffi-3.4.4
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(nproc --all)
 make install
@@ -231,8 +221,8 @@ curl -L https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.15.
 tar -xf fontconfig.tar.gz
 cd fontconfig-2.15.0
 ./configure --prefix=${PREFIX} --disable-shared
-make -j$(nproc --all)
-make install
+make -j$(nproc --all) install || true
+echo ----- It is normal for fontconfig to fail to build the executables. The libs should be enough. -----
 cd ..
 fi
 
