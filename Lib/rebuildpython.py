@@ -4,6 +4,7 @@ import __np__
 import ctypes
 import distutils
 import distutils.ccompiler
+from importlib import machinery
 import fnmatch
 import json
 import os
@@ -131,7 +132,12 @@ def run_rebuild():
                 if platform.system() != "Windows" and filename.startswith("lib"):
                     filename = filename[3:]
                 if filename.endswith(".a"):
-                    filename = filename[:-2]
+                    if platform.system() == "Linux":
+                        ext_suffixes = machinery.all_suffixes()
+                        ext_suffix = ext_suffixes[2][:-3]
+                        filename = filename.split(ext_suffix)[0]
+                    else:
+                        filename = filename[:-2]
                 if filename.endswith(".lib"):
                     filename = filename[:-4]
                 if ext_suffix and filename.endswith(ext_suffix):
