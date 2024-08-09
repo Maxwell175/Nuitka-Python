@@ -134,8 +134,8 @@ def run_rebuild():
                 if filename.endswith(".a"):
                     if platform.system() == "Linux":
                         ext_suffixes = machinery.all_suffixes()
-                        ext_suffix = ext_suffixes[2][:-3]
-                        filename = filename.split(ext_suffix)[0]
+                        linux_ext_suffix = ext_suffixes[2][:-3]
+                        filename = filename.split(linux_ext_suffix)[0]
                     else:
                         filename = filename[:-2]
                 if filename.endswith(".lib"):
