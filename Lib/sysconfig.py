@@ -654,7 +654,7 @@ def get_config_vars(*args):
         _CONFIG_VARS['platbase'] = _EXEC_PREFIX
         _CONFIG_VARS['projectbase'] = _PROJECT_BASE
         _CONFIG_VARS['platlibdir'] = sys.platlibdir
-        _CONFIG_VARS['SOABI'] = 'cpnuitka3.9'
+        _CONFIG_VARS['SOABI'] = 'cpnuitka3.11'
         try:
             _CONFIG_VARS['abiflags'] = sys.abiflags
         except AttributeError:

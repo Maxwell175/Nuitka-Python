@@ -45,7 +45,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling></ExceptionHandling>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -53,7 +53,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <ControlFlowGuard Condition="$(EnableControlFlowGuard) != ''">$(EnableControlFlowGuard)</ControlFlowGuard>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions Condition="$(MSVCHasBrokenARM64Clamping) == 'true' and $(Platform) == 'ARM64'">-d2pattern-opt-disable:-932189325 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -230,17 +230,17 @@ public override bool Execute() {
     <Message Text="VC Redist Version: $(VCToolsRedistVersion)" />
   </Target>
 
-  <Target Name="FindVCRuntime" Returns="VCRuntimeDLL" DependsOnTargets="FindVCRedistDir">
-    <ItemGroup Condition="$(VCRuntimeDLL) != ''">
-      <VCRuntimeDLL Include="$(VCRuntimeDLL)" />
-    </ItemGroup>
-    <ItemGroup Condition="$(VCInstallDir) != '' and $(VCRuntimeDLL) == ''">
-      <VCRuntimeDLL Include="$(VCRedistDir)\Microsoft.VC*.CRT\vcruntime*.dll" Exclude="$(VCRedistDir)\Microsoft.VC*.CRT\vcruntime*_threads.dll" />
-    </ItemGroup>
+<!--   <Target Name="FindVCRuntime" Returns="VCRuntimeDLL" DependsOnTargets="FindVCRedistDir"> -->
+<!--     <ItemGroup Condition="$(VCRuntimeDLL) != ''"> -->
+<!--       <VCRuntimeDLL Include="$(VCRuntimeDLL)" /> -->
+<!--     </ItemGroup> -->
+<!--     <ItemGroup Condition="$(VCInstallDir) != '' and $(VCRuntimeDLL) == ''"> -->
+<!--       <VCRuntimeDLL Include="$(VCRedistDir)\Microsoft.VC*.CRT\vcruntime*.dll" Exclude="$(VCRedistDir)\Microsoft.VC*.CRT\vcruntime*_threads.dll" /> -->
+<!--     </ItemGroup> -->
 
-    <Warning Text="vcruntime*.dll not found under $(VCRedistDir)." Condition="@(VCRuntimeDLL) == ''" />
-    <Message Text="VC Runtime DLL(s):%0A- @(VCRuntimeDLL,'%0A- ')" />
-  </Target>
+<!--     <Warning Text="vcruntime*.dll not found under $(VCRedistDir)." Condition="@(VCRuntimeDLL) == ''" /> -->
+<!--     <Message Text="VC Runtime DLL(s):%0A- @(VCRuntimeDLL,'%0A- ')" /> -->
+<!--   </Target> -->
 
   <Target Name="FindPythonForBuild" Condition="$(PythonForBuild) == ''">
     <Exec Command="&quot;$(MSBuildThisFileDirectory)\find_python.bat&quot; -q"

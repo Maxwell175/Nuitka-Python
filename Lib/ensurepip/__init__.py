@@ -8,9 +8,9 @@ import tempfile
 from importlib import resources
 
 
-__all__ = ["version", "bootstrap"]
+__all__ = ["version", "bootstrap", "_SETUPTOOLS_VERSION", "_get_packages"]
 _PACKAGE_NAMES = ('setuptools', 'pip', 'wheel')
-_SETUPTOOLS_VERSION = "70.0.0.post20240616"
+_SETUPTOOLS_VERSION = "75.2.0.post20241019"
 _PIP_VERSION = "23.3.2"
 _WHEEL_VERSION = "0.42.0"
 _PROJECTS = [

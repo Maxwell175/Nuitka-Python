@@ -262,8 +262,6 @@ class MSVCCompiler(CCompiler) :
 
         self.ldflags_exe = [*ldflags, '/MANIFEST:EMBED,ID=1']
         self.ldflags_exe_debug = [*ldflags_debug, '/MANIFEST:EMBED,ID=1']
-        self.ldflags_shared = [*ldflags, '/DLL', '/MANIFEST:EMBED,ID=2', '/MANIFESTUAC:NO']
-        self.ldflags_shared_debug = [*ldflags_debug, '/DLL', '/MANIFEST:EMBED,ID=2', '/MANIFESTUAC:NO']
         self.ldflags_static = [*ldflags]
         self.ldflags_static_debug = [*ldflags_debug]
 
@@ -271,9 +269,9 @@ class MSVCCompiler(CCompiler) :
             (CCompiler.EXECUTABLE, None): self.ldflags_exe,
             (CCompiler.EXECUTABLE, False): self.ldflags_exe,
             (CCompiler.EXECUTABLE, True): self.ldflags_exe_debug,
-            (CCompiler.SHARED_OBJECT, None): self.ldflags_shared,
-            (CCompiler.SHARED_OBJECT, False): self.ldflags_shared,
-            (CCompiler.SHARED_OBJECT, True): self.ldflags_shared_debug,
+            (CCompiler.SHARED_OBJECT, None): self.ldflags_static,
+            (CCompiler.SHARED_OBJECT, False): self.ldflags_static,
+            (CCompiler.SHARED_OBJECT, True): self.ldflags_static_debug,
             (CCompiler.SHARED_LIBRARY, None): self.ldflags_static,
             (CCompiler.SHARED_LIBRARY, False): self.ldflags_static,
             (CCompiler.SHARED_LIBRARY, True): self.ldflags_static_debug,

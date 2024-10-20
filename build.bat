@@ -25,22 +25,28 @@ if "%ARCH_OPT%" EQU "-x86" (
 rem Remove old output
 del /S /Q output nuget-result-%NUGET_PYTHON_PACKAGE_NAME% >nul
 
+move .\Lib\pip.py .\Lib\pip.py.bak
+
 rem Build with nuget, it solves the directory structure for us.
 call .\Tools\nuget\build.bat %ARCH_OPT% %PGO_OPT% %REBUILD_OPT%
 
 rem Install with nuget into a build folder
 .\externals\windows-installer\nuget\nuget.exe install %NUGET_PYTHON_PACKAGE_NAME% -Source %~dp0\PCbuild\%ARCH_NAME% -OutputDirectory nuget-result-%NUGET_PYTHON_PACKAGE_NAME%
 
+move .\Lib\pip.py.bak .\Lib\pip.py
+
 rem Move the standalone build result to "output". TODO: Version number could be queried here
 rem from the Python binary built, or much rather we do not use one in the nuget build at all.
 
 set OUTPUT_DIR=output
-set SRC_TOOLS_DIR=nuget-result-%NUGET_PYTHON_PACKAGE_NAME%\%NUGET_PYTHON_PACKAGE_NAME%.3.9.15\tools
+set SRC_TOOLS_DIR=nuget-result-%NUGET_PYTHON_PACKAGE_NAME%\%NUGET_PYTHON_PACKAGE_NAME%.3.11.9\tools
 set SRC_LIB_DIR=%%d\amd64
 if "%ARCH_OPT%" EQU "-x86" (
     set OUTPUT_DIR=output32
     set SRC_LIB_DIR=%%d\win32
 )
+
+move %SRC_TOOLS_DIR%\Lib\pip.py.bak %SRC_TOOLS_DIR%\Lib\pip.py
 
 xcopy /i /q /s /y %SRC_TOOLS_DIR% %OUTPUT_DIR%
 

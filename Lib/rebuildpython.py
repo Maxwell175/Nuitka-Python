@@ -221,6 +221,7 @@ def run_rebuild():
             "Cabinet",
             "winmm",
             "Netapi32",
+            "Bcrypt"
         ]
         if "32" in platform.architecture()[0]:
             link_libs += ["msvcrt"]

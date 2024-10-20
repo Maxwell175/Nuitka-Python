@@ -170,12 +170,12 @@ def get_layout(ns):
     if ns.include_stable:
         yield from in_build(PYTHON_STABLE_DLL_NAME)
 
-    found_any = False
-    for dest, src in rglob(ns.build, "vcruntime*.dll"):
-        found_any = True
-        yield dest, src
-    if not found_any:
-        log_error("Failed to locate vcruntime DLL in the build.")
+    #found_any = False
+    #for dest, src in rglob(ns.build, "vcruntime*.dll"):
+    #    found_any = True
+    #    yield dest, src
+    #if not found_any:
+    #    log_error("Failed to locate vcruntime DLL in the build.")
 
     for dest, src in rglob(ns.build, "lzma.dll"):
         yield dest, src
@@ -240,7 +240,7 @@ def get_layout(ns):
     for dest, src in get_tcltk_lib(ns):
         yield dest, src
 
-    if ns.include_pip:
+    if ns.include_pip and False:
         for dest, src in get_pip_layout(ns):
             if not isinstance(src, tuple) and (
                 src in EXCLUDE_FROM_LIB or src in EXCLUDE_FROM_PACKAGED_LIB
@@ -383,7 +383,13 @@ def generate_source_files(ns):
 
     if ns.include_pip:
         log_info("Extracting pip")
-        extract_pip_files(ns)
+        #extract_pip_files(ns)
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ensurepip"
+            ])
 
 
 def _create_zip_file(ns):

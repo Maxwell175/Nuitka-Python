@@ -35,6 +35,8 @@
 #include <assert.h>               // assert()
 #include <wchar.h>                // wchar_t
 
+#define FFI_STATIC_BUILD
+
 #include "pyport.h"
 #include "pymacro.h"
 #include "pymath.h"

@@ -39,6 +39,7 @@ def _getPythonVersion():
 
 python_version = _getPythonVersion()
 
+
 # Portability, lending an import code to module function from Nuitka.
 def importFileAsModule(modulename, filename):
     """Import Python module given as a file name.
@@ -146,10 +147,10 @@ def install_build_tool(name):
             install_build_tool(tool)
 
     if os.path.isfile(
-        os.path.join(__np__.getToolsInstallDir(), name, "version.txt")
+            os.path.join(__np__.getToolsInstallDir(), name, "version.txt")
     ):
         with open(
-            os.path.join(__np__.getToolsInstallDir(), name, "version.txt"), "r"
+                os.path.join(__np__.getToolsInstallDir(), name, "version.txt"), "r"
         ) as f:
             version = f.read()
             if version == package_index["version"]:
@@ -187,7 +188,7 @@ def install_build_tool(name):
             os.environ.update(initenviron)
 
     with open(
-        os.path.join(__np__.getToolsInstallDir(), name, "version.txt"), "w"
+            os.path.join(__np__.getToolsInstallDir(), name, "version.txt"), "w"
     ) as f:
         f.write(package_index["version"])
 
@@ -204,10 +205,10 @@ def install_dependency(name):
             install_dependency(dep)
 
     if os.path.isfile(
-        os.path.join(__np__.getDependencyInstallDir(), name, "version.txt")
+            os.path.join(__np__.getDependencyInstallDir(), name, "version.txt")
     ):
         with open(
-            os.path.join(__np__.getDependencyInstallDir(), name, "version.txt"), "r"
+                os.path.join(__np__.getDependencyInstallDir(), name, "version.txt"), "r"
         ) as f:
             version = f.read()
             if version == package_index["version"]:
@@ -245,22 +246,38 @@ def install_dependency(name):
             os.environ.update(initenviron)
 
     with open(
-        os.path.join(__np__.getDependencyInstallDir(), name, "version.txt"), "w"
+            os.path.join(__np__.getDependencyInstallDir(), name, "version.txt"), "w"
     ) as f:
         f.write(package_index["version"])
+
+
+import pip._internal.pyproject
+
+load_pyproject_toml_orig = pip._internal.pyproject.load_pyproject_toml
+def our_load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
+    has_pyproject = os.path.isfile(pyproject_toml)
+    has_setup = os.path.isfile(setup_py)
+
+    if not has_pyproject and not has_setup:
+        return pip._internal.pyproject.BuildSystemDetails(
+            ["setuptools>=40.8.0", "wheel"], "setuptools.build_meta:__legacy__", [], [])
+
+    return load_pyproject_toml_orig(use_pep517, pyproject_toml, setup_py, req_name)
 
 
 from pip._internal.req.req_install import InstallRequirement
 from typing import Iterable, List, Optional, Tuple
 import pip._internal.wheel_builder
+
 _orig_build_one_inside_env = pip._internal.wheel_builder._build_one_inside_env
 
+
 def _build_one_inside_env(
-    req: InstallRequirement,
-    output_dir: str,
-    build_options: List[str],
-    global_options: List[str],
-    editable: bool,
+        req: InstallRequirement,
+        output_dir: str,
+        build_options: List[str],
+        global_options: List[str],
+        editable: bool,
 ) -> Optional[str]:
     fallback = False
     if req.name == "setuptools":
@@ -370,6 +387,20 @@ wheel_builder.build = build_stub
 
 class PackageFinder(_PackageFinder):
     def find_all_candidates(self, project_name):
+        import pip._internal.pyproject
+        pip._internal.pyproject.load_pyproject_toml = our_load_pyproject_toml
+        pip._internal.req.req_install.load_pyproject_toml = our_load_pyproject_toml
+
+        if project_name == "setuptools":
+            import ensurepip
+            import pathlib
+
+            our_uri = pathlib.Path(os.path.join(os.path.dirname(ensurepip.__file__), '_bundled',
+                                                ensurepip._get_packages()["setuptools"].wheel_name)).as_uri()
+            return [InstallationCandidate(
+                project_name, ensurepip._SETUPTOOLS_VERSION, Link(our_uri)
+            )]
+
         base_candidates = _PackageFinder.find_all_candidates(self, project_name)
 
         try:
@@ -393,29 +424,34 @@ pip._internal.index.package_finder.PackageFinder = PackageFinder
 
 my_path = os.path.abspath(__file__)
 
+
 def get_runnable_pip() -> str:
     return my_path
 
+
 import pip._internal.build_env
+
 pip._internal.build_env.get_runnable_pip = get_runnable_pip
 
-
 import pip._internal.req.req_install
+
 orig_install = pip._internal.req.req_install.InstallRequirement.install
+
 
 def install(
         self,
-        global_options = None,
-        root = None,
-        home = None,
-        prefix = None,
-        warn_script_location = True,
-        use_user_site = False,
-        pycompile = True,
-    ):
+        global_options=None,
+        root=None,
+        home=None,
+        prefix=None,
+        warn_script_location=True,
+        use_user_site=False,
+        pycompile=True,
+):
     orig_install(self, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
 
     rebuildpython.run_rebuild()
+
 
 pip._internal.req.req_install.InstallRequirement.install = install
 

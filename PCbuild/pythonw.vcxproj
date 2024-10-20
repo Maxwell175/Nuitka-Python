@@ -90,7 +90,7 @@
   <ItemDefinitionGroup>
     <Link>
       <StackReserveSize>2000000</StackReserveSize>
-	  <AdditionalDependencies>advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;ws2_32.lib;version.lib;Crypt32.lib;Iphlpapi.lib;msi.lib;Rpcrt4.lib;Cabinet.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+	  <AdditionalDependencies>advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;ws2_32.lib;version.lib;Crypt32.lib;Iphlpapi.lib;msi.lib;Rpcrt4.lib;Cabinet.lib;winmm.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

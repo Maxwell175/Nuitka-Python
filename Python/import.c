@@ -2086,6 +2086,14 @@ _imp_extension_suffixes_impl(PyObject *module)
         Py_DECREF(item);
         index += 1;
     }
+#else
+#ifdef WIN32
+    PyObject *item = PyUnicode_FromString(".lib");
+#else
+    PyObject *item = PyUnicode_FromString(".a");
+#endif
+    PyList_Append(list, item);
+    Py_DECREF(item);
 #endif
     return list;
 }

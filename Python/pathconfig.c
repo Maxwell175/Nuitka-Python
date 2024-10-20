@@ -10,7 +10,8 @@
 #include <wchar.h>
 #ifdef MS_WINDOWS
 #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
-#  include <pathcch.h>
+//#  include <pathcch.h>
+#  include "pathcch.private.h"
 #  include <shlwapi.h>
 #endif
 

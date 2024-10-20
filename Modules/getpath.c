@@ -11,7 +11,8 @@
 
 #ifdef MS_WINDOWS
 #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
-#  include <pathcch.h>
+// #  include <pathcch.h>
+#  include "pathcch.private.h"
 #endif
 
 #ifdef __APPLE__
@@ -758,47 +759,6 @@ progname_to_dict(PyObject *dict, const char *key)
 }
 
 
-/* Add the runtime library's path to the dict */
-static int
-library_to_dict(PyObject *dict, const char *key)
-{
-#ifdef MS_WINDOWS
-    extern HMODULE PyWin_DLLhModule;
-    if (PyWin_DLLhModule) {
-        return winmodule_to_dict(dict, key, PyWin_DLLhModule);
-    }
-#elif defined(WITH_NEXT_FRAMEWORK)
-    static char modPath[MAXPATHLEN + 1];
-    static int modPathInitialized = -1;
-    if (modPathInitialized < 0) {
-        modPathInitialized = 0;
-
-        /* On Mac OS X we have a special case if we're running from a framework.
-           This is because the python home should be set relative to the library,
-           which is in the framework, not relative to the executable, which may
-           be outside of the framework. Except when we're in the build
-           directory... */
-        NSSymbol symbol = NSLookupAndBindSymbol("_Py_Initialize");
-        if (symbol != NULL) {
-            NSModule pythonModule = NSModuleForSymbol(symbol);
-            if (pythonModule != NULL) {
-                /* Use dylib functions to find out where the framework was loaded from */
-                const char *path = NSLibraryNameForModule(pythonModule);
-                if (path) {
-                    strncpy(modPath, path, MAXPATHLEN);
-                    modPathInitialized = 1;
-                }
-            }
-        }
-    }
-    if (modPathInitialized > 0) {
-        return decode_to_dict(dict, key, modPath);
-    }
-#endif
-    return PyDict_SetItemString(dict, key, Py_None) == 0;
-}
-
-
 PyObject *
 _Py_Get_Getpath_CodeObject(void)
 {
@@ -909,7 +869,7 @@ _PyConfig_InitPathConfig(PyConfig *config, int compute_path_config)
         !env_to_dict(dict, "ENV_PYTHONEXECUTABLE", 0) ||
         !env_to_dict(dict, "ENV___PYVENV_LAUNCHER__", 1) ||
         !progname_to_dict(dict, "real_executable") ||
-        !library_to_dict(dict, "library") ||
+        !wchar_to_dict(dict, "library", NULL) ||
         !wchar_to_dict(dict, "executable_dir", NULL) ||
         !wchar_to_dict(dict, "py_setpath", _PyPathConfig_GetGlobalModuleSearchPath()) ||
         !funcs_to_dict(dict, config->pathconfig_warnings) ||

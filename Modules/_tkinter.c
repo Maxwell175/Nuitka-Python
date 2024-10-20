@@ -44,6 +44,8 @@ Copyright (C) 1994 Steen Lumholt.
    Tcl are empty.  */
 #define TCL_THREADS
 
+#define STATIC_BUILD
+
 #ifdef TK_FRAMEWORK
 #include <Tcl/tcl.h>
 #include <Tk/tk.h>
@@ -51,6 +53,8 @@ Copyright (C) 1994 Steen Lumholt.
 #include <tcl.h>
 #include <tk.h>
 #endif
+
+#undef STATIC_BUILD
 
 #include "tkinter.h"
 

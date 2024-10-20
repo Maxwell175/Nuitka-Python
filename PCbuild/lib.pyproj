@@ -1586,7 +1586,6 @@
     <Compile Include="_threading_local.py" />
     <Compile Include="_weakrefset.py" />
     <Compile Include="__future__.py" />
-    <Compile Include="__phello__.foo.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="idlelib\CREDITS.txt" />

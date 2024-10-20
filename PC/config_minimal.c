@@ -5,9 +5,6 @@
 
 #include "Python.h"
 
-/* Define extern variables omitted from minimal builds */
-void *PyWin_DLLhModule = NULL;
-
 
 extern PyObject* PyInit_faulthandler(void);
 extern PyObject* PyInit__tracemalloc(void);

@@ -28,7 +28,6 @@ extern "C" {
     extern  PyObject* PyInit__overlapped(void);
     extern  PyObject* PyInit__elementtree(void);
     extern  PyObject* PyInit__uuid(void);
-    extern  PyObject* PyInit__msi(void);
     extern  PyObject* PyInit__sqlite3(void);
     extern  PyObject* PyInit__tkinter(void);
     extern  PyObject* PyInit__zoneinfo(void);
@@ -57,7 +56,6 @@ static inline void Py_InitStaticModules() {
     PyImport_AppendInittab("_overlapped", PyInit__overlapped);
     PyImport_AppendInittab("_elementtree", PyInit__elementtree);
     PyImport_AppendInittab("_uuid", PyInit__uuid);
-    PyImport_AppendInittab("_msi", PyInit__msi);
     PyImport_AppendInittab("_sqlite3", PyInit__sqlite3);
     PyImport_AppendInittab("_tkinter", PyInit__tkinter);
     PyImport_AppendInittab("_zoneinfo", PyInit__zoneinfo);

@@ -1030,9 +1030,6 @@
     <ClCompile Include="..\PC\config.c">
       <Filter>PC</Filter>
     </ClCompile>
-    <ClCompile Include="..\PC\dl_nt.c">
-      <Filter>PC</Filter>
-    </ClCompile>
     <ClCompile Include="..\PC\msvcrtmodule.c">
       <Filter>PC</Filter>
     </ClCompile>
@@ -1064,9 +1061,6 @@
       <Filter>Python</Filter>
     </ClCompile>
     <ClCompile Include="..\Python\dynamic_annotations.c">
-      <Filter>Python</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Python\dynload_win.c">
       <Filter>Python</Filter>
     </ClCompile>
     <ClCompile Include="..\Python\errors.c">

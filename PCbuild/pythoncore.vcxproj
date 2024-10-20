@@ -116,7 +116,7 @@
       <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>version.lib;ws2_32.lib;pathcch.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>version.lib;ws2_32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -498,7 +498,6 @@
     <ClCompile Include="..\Python\compile.c" />
     <ClCompile Include="..\Python\context.c" />
     <ClCompile Include="..\Python\dynamic_annotations.c" />
-    <ClCompile Include="..\Python\dynload_win.c" />
     <ClCompile Include="..\Python\errors.c" />
     <ClCompile Include="..\Python\fileutils.c" />
     <ClCompile Include="..\Python\formatter_unicode.c" />
@@ -545,6 +544,7 @@
     </ClCompile>
     <ClCompile Include="..\Python\thread.c" />
     <ClCompile Include="..\Python\traceback.c" />
+    <ClCompile Include="..\Python\pathcch.c" />
   </ItemGroup>
   <ItemGroup>
     <!-- BEGIN deepfreeze -->
@@ -566,9 +566,6 @@
     <ClCompile Include="$(zlibDir)\trees.c" />
     <ClCompile Include="$(zlibDir)\uncompr.c" />
     <ClCompile Include="$(zlibDir)\zutil.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\PC\dl_nt.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\PC\python_nt.rc" />
@@ -608,11 +605,11 @@
     <Warning Text="Not including zlib is not a supported configuration." />
   </Target>
 
-  <Target Name="_CopyVCRuntime" AfterTargets="Build" Inputs="@(VCRuntimeDLL)" Outputs="$(OutDir)%(Filename)%(Extension)" DependsOnTargets="FindVCRuntime">
-    <!-- bpo-38597: When we switch to another VCRuntime DLL, include vcruntime140.dll as well -->
-    <Warning Text="A copy of vcruntime140.dll is also required" Condition="!$(VCToolsRedistVersion.StartsWith(`14.`))" />
-    <Copy SourceFiles="%(VCRuntimeDLL.FullPath)" DestinationFolder="$(OutDir)" />
-  </Target>
+<!--   <Target Name="_CopyVCRuntime" AfterTargets="Build" Inputs="@(VCRuntimeDLL)" Outputs="$(OutDir)%(Filename)%(Extension)" DependsOnTargets="FindVCRuntime"> -->
+<!--      --><!-- bpo-38597: When we switch to another VCRuntime DLL, include vcruntime140.dll as well -->
+<!--     <Warning Text="A copy of vcruntime140.dll is also required" Condition="!$(VCToolsRedistVersion.StartsWith(`14.`))" /> -->
+<!--     <Copy SourceFiles="%(VCRuntimeDLL.FullPath)" DestinationFolder="$(OutDir)" /> -->
+<!--   </Target> -->
   <Target Name="_CleanVCRuntime" AfterTargets="Clean">
     <Delete Files="@(VCRuntimeDLL->'$(OutDir)%(Filename)%(Extension)')" />
   </Target>
