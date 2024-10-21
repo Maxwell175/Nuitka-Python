@@ -144,6 +144,10 @@ def copytree(src, dst, symlinks=False, ignore=None, executable=False):
             if executable:
                 os.chmod(d, 509)  # 775
 
+def cleanup_file_name(filename):
+    if '?' in filename:
+        filename = filename[:filename.index('?')]
+    return filename
 
 def download_file(url, destination):
     if str is bytes:
@@ -166,7 +170,7 @@ def download_file(url, destination):
                 )
             else:
                 destination_file = os.path.join(
-                    destination, os.path.basename(fp.geturl())
+                    destination, cleanup_file_name(os.path.basename(fp.geturl()))
                 )
 
             parent_dir = os.path.dirname(destination_file)
@@ -379,3 +383,26 @@ def write_linker_json(
             },
             f,
         )
+
+def importFileAsModule(modulename, filename):
+    """Import Python module given as a file name.
+
+    Notes:
+        Provides a Python version independent way to import any script files.
+
+    Args:
+        filename: complete path of a Python script
+
+    Returns:
+        Imported Python module with code from the filename.
+    """
+    import importlib.machinery
+    import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
+
+    build_script_spec = importlib.util.spec_from_loader(
+        modulename, importlib.machinery.SourceFileLoader(modulename, filename)
+    )
+    build_script_module = importlib.util.module_from_spec(build_script_spec)
+    build_script_spec.loader.exec_module(build_script_module)
+    return build_script_module
+

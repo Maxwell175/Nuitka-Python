@@ -8,6 +8,7 @@ import platform
 import rebuildpython
 
 import __np__
+import __np__.packaging
 
 # Make the standard pip, the real pip module.
 # Need to keep a reference alive, or the module will loose all attributes.
@@ -21,234 +22,11 @@ import pip as _pip
 
 del sys.path[0]
 sys.modules["pip"] = _pip
+sys.path.append(real_pip_dir)
 
 
-def urlretrieve(url, output_filename):
-    local_filename = __np__.download_file(url, os.path.dirname(output_filename))
-
-    return local_filename
-
-
-# For Nuitka utils source compatibility
-def _getPythonVersion():
-    big, major, minor = sys.version_info[0:3]
-
-    # TODO: Give up on decimal versions already.
-    return big * 256 + major * 16 + min(15, minor)
-
-
-python_version = _getPythonVersion()
-
-
-# Portability, lending an import code to module function from Nuitka.
-def importFileAsModule(modulename, filename):
-    """Import Python module given as a file name.
-
-    Notes:
-        Provides a Python version independent way to import any script files.
-
-    Args:
-        filename: complete path of a Python script
-
-    Returns:
-        Imported Python module with code from the filename.
-    """
-    assert os.path.exists(filename), filename
-
-    def _importFilePy2(modulename, filename):
-        """Import a file for Python version 2."""
-        import imp
-
-        result = imp.load_source(modulename, filename)
-
-        # Otherwise there are warnings, when this one imports others.
-        result.__file__ = filename
-        return result
-
-    def _importFilePy3OldWay(modulename, filename):
-        """Import a file for Python versions before 3.5."""
-        from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
-            SourceFileLoader,
-        )
-
-        # pylint: disable=I0021,deprecated-method
-        return SourceFileLoader(modulename, filename).load_module(modulename)
-
-    def _importFilePy3NewWay(modulename, filename):
-        """Import a file for Python versions 3.5+."""
-        import importlib.machinery
-        import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
-
-        build_script_spec = importlib.util.spec_from_loader(
-            modulename, importlib.machinery.SourceFileLoader(modulename, filename)
-        )
-        build_script_module = importlib.util.module_from_spec(build_script_spec)
-        build_script_spec.loader.exec_module(build_script_module)
-        return build_script_module
-
-    if python_version < 0x300:
-        return _importFilePy2(modulename, filename)
-    elif python_version < 0x350:
-        return _importFilePy3OldWay(modulename, filename)
-    else:
-        return _importFilePy3NewWay(modulename, filename)
-
-
-PACKAGE_BASE_URL = os.environ.get(
-    "NUITKA_PYTHON_PACKAGE_URL",
-    "https://raw.githubusercontent.com/Nuitka/Nuitka-Python-packages/master",
-)
-
-
-def getPackageUrl(section, name):
-    if platform.system() == "Windows":
-        if str is bytes:
-            section += "/np27-windows"
-        else:
-            section += "/np{0}{1}-windows".format(sys.version_info.major, sys.version_info.minor)
-    elif platform.system() == "Linux":
-        if str is bytes:
-            section += "/np27-linux"
-        else:
-            section += "/np{0}{1}-linux".format(sys.version_info.major, sys.version_info.minor)
-    elif platform.system() == "Darwin":
-        if str is bytes:
-            section += "/np27-macos"
-        else:
-            section += "/np{0}{1}-macos".format(sys.version_info.major, sys.version_info.minor)
-
-    return "{PACKAGE_BASE_URL}/{section}/{name}".format(
-        PACKAGE_BASE_URL=PACKAGE_BASE_URL, section=section, name=name
-    )
-
-
-def getPackageJson(section, name):
-    package_dir_url = getPackageUrl(section, name)
-    with __np__.TemporaryDirectory() as temp_dir:
-        data_filename = urlretrieve(
-            "{package_dir_url}/index.json".format(**locals()),
-            os.path.join(temp_dir, "index.json"),
-        )
-
-        with open(data_filename) as data_file:
-            return json.loads(data_file.read())
-
-
-def getBuildScriptName(dir_name, name):
-    return "build_script_" + os.path.basename(dir_name).replace("-", "_") + "_" + name
-
-
-def install_build_tool(name):
-    package_index = getPackageJson("build_tools", name)
-    package_dir_url = getPackageUrl("build_tools", name)
-
-    if "build_tools" in package_index:
-        for tool in package_index["build_tools"]:
-            install_build_tool(tool)
-
-    if os.path.isfile(
-            os.path.join(__np__.getToolsInstallDir(), name, "version.txt")
-    ):
-        with open(
-                os.path.join(__np__.getToolsInstallDir(), name, "version.txt"), "r"
-        ) as f:
-            version = f.read()
-            if version == package_index["version"]:
-                print("Skipping installed build tool {name}.".format(**locals()))
-                return
-
-    print("Setting up build tool {name}...".format(**locals()))
-
-    with __np__.TemporaryDirectory() as temp_dir:
-        for file in package_index["files"]:
-            urlretrieve(
-                "{package_dir_url}/{file}".format(**locals()),
-                os.path.join(temp_dir, file),
-            )
-
-        build_script_module_name = getBuildScriptName(temp_dir, name)
-        initcwd = os.getcwd()
-        initenviron = dict(os.environ)
-
-        build_script_module = importFileAsModule(
-            build_script_module_name,
-            os.path.join(temp_dir, package_index["build_script"]),
-        )
-        try:
-            build_script_module.run(temp_dir)
-        finally:
-            if build_script_module_name in sys.modules:
-                del sys.modules[build_script_module_name]
-            try:
-                del build_script_module
-            except NameError:
-                pass
-            os.chdir(initcwd)
-            os.environ.clear()
-            os.environ.update(initenviron)
-
-    with open(
-            os.path.join(__np__.getToolsInstallDir(), name, "version.txt"), "w"
-    ) as f:
-        f.write(package_index["version"])
-
-
-def install_dependency(name):
-    package_index = getPackageJson("dependencies", name)
-    package_dir_url = getPackageUrl("dependencies", name)
-
-    if "build_tools" in package_index:
-        for tool in package_index["build_tools"]:
-            install_build_tool(tool)
-    if "dependencies" in package_index:
-        for dep in package_index["dependencies"]:
-            install_dependency(dep)
-
-    if os.path.isfile(
-            os.path.join(__np__.getDependencyInstallDir(), name, "version.txt")
-    ):
-        with open(
-                os.path.join(__np__.getDependencyInstallDir(), name, "version.txt"), "r"
-        ) as f:
-            version = f.read()
-            if version == package_index["version"]:
-                print("Skipping installed dependency {name}.".format(**locals()))
-                return
-
-    print("Compiling dependency {name}...".format(**locals()))
-
-    with __np__.TemporaryDirectory() as temp_dir:
-        for file in package_index["files"]:
-            urlretrieve(
-                "{package_dir_url}/{file}".format(**locals()),
-                os.path.join(temp_dir, file),
-            )
-
-        build_script_module_name = getBuildScriptName(temp_dir, name)
-        initcwd = os.getcwd()
-        initenviron = dict(os.environ)
-
-        build_script_module = importFileAsModule(
-            build_script_module_name,
-            os.path.join(temp_dir, package_index["build_script"]),
-        )
-        try:
-            build_script_module.run(temp_dir)
-        finally:
-            if build_script_module_name in sys.modules:
-                del sys.modules[build_script_module_name]
-            try:
-                del build_script_module
-            except NameError:
-                pass
-            os.chdir(initcwd)
-            os.environ.clear()
-            os.environ.update(initenviron)
-
-    with open(
-            os.path.join(__np__.getDependencyInstallDir(), name, "version.txt"), "w"
-    ) as f:
-        f.write(package_index["version"])
+import ensurepip
+builtin_packages = ensurepip._get_packages()
 
 
 import pip._internal.pyproject
@@ -258,108 +36,44 @@ def our_load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
     has_pyproject = os.path.isfile(pyproject_toml)
     has_setup = os.path.isfile(setup_py)
 
-    if not has_pyproject and not has_setup:
+    # We will be taking over the build process.
+    if os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json")):
         return pip._internal.pyproject.BuildSystemDetails(
-            ["setuptools>=40.8.0", "wheel"], "setuptools.build_meta:__legacy__", [], [])
+            [], "__np__.metabuild:managed_build", [], [real_pip_dir, os.path.dirname(__file__)])
 
-    return load_pyproject_toml_orig(use_pep517, pyproject_toml, setup_py, req_name)
-
-
-from pip._internal.req.req_install import InstallRequirement
-from typing import Iterable, List, Optional, Tuple
-import pip._internal.wheel_builder
-
-_orig_build_one_inside_env = pip._internal.wheel_builder._build_one_inside_env
+    result = load_pyproject_toml_orig(use_pep517, pyproject_toml, setup_py, req_name)
+    return pip._internal.pyproject.BuildSystemDetails(
+        [x for x in result.requires if re.split(r'[><=]', x, 1)[0] not in builtin_packages],
+        result.backend, result.check, result.backend_path + [real_pip_dir])
 
 
-def _build_one_inside_env(
-        req: InstallRequirement,
-        output_dir: str,
-        build_options: List[str],
-        global_options: List[str],
-        editable: bool,
-) -> Optional[str]:
-    fallback = False
-    if req.name == "setuptools":
-        raise NotImplementedError("setuptools not yet supported")
-    try:
-        package_index = getPackageJson("packages", req.name)
-    except __np__.NoSuchURL:
-        fallback = True
-    except:
-        if req.name == "certifi":
-            fallback = True
-        else:
-            throw
 
-    if fallback or not req.source_dir:
-        __np__.my_print("FALLBACK to standard install for %s" % req.name)
-
-        return _orig_build_one_inside_env(req, output_dir, build_options, global_options, editable)
-
-    matched_source = None
-    for source in package_index["scripts"]:
-        for key, value_glob in source["metadata"].items():
-            if not fnmatch.fnmatch(req.metadata[key], value_glob):
-                matched_metadata = False
-                break
-        else:
-            matched_metadata = True
-
-        if matched_metadata:
-            matched_source = source
-            break
-
-    install_temp_dir = os.path.dirname(req.source_dir)
-
-    if "build_tools" in matched_source:
-        for dep in matched_source["build_tools"]:
-            install_build_tool(dep)
-
-    if "dependencies" in matched_source:
-        for dep in matched_source["dependencies"]:
-            install_dependency(dep)
-
-    for file in matched_source["files"]:
-        package_dir_url = getPackageUrl("packages", req.name)
-        urlretrieve(
-            "{package_dir_url}/{file}".format(**locals()),
-            os.path.join(install_temp_dir, file),
-        )
-
-    build_script_module_name = getBuildScriptName(install_temp_dir, req.name)
-
-    initcwd = os.getcwd()
-    initenviron = dict(os.environ)
-    build_script_module = importFileAsModule(
-        build_script_module_name,
-        os.path.join(install_temp_dir, matched_source["build_script"]),
-    )
-
-    static_pattern = matched_source.get("static_pattern")
-    if static_pattern is None and os.name == "nt":
-        static_pattern = "*"
-
-    # Put to empty, to avoid need to remove it and for easier manual usage.
-    os.environ["NUITKA_PYTHON_STATIC_PATTERN"] = static_pattern or ""
-
-    try:
-        result = build_script_module.run(install_temp_dir, req.source_dir)
-    finally:
-        if build_script_module_name in sys.modules:
-            del sys.modules[build_script_module_name]
-        try:
-            del build_script_module
-        except NameError:
-            pass
-        os.chdir(initcwd)
-        os.environ.clear()
-        os.environ.update(initenviron)
-
-    return result
+pip._internal.pyproject.load_pyproject_toml = our_load_pyproject_toml
 
 
-pip._internal.wheel_builder._build_one_inside_env = _build_one_inside_env
+import pip._vendor.pyproject_hooks._impl
+
+def norm_and_dont_check(source_tree, requested):
+    abs_source = os.path.abspath(source_tree)
+    abs_requested = os.path.normpath(os.path.join(abs_source, requested))
+    return abs_requested
+
+pip._vendor.pyproject_hooks._impl.norm_and_check = norm_and_dont_check
+
+import pip._internal.distributions.sdist
+
+orig_SourceDistribution_get_build_requires_wheel = pip._internal.distributions.sdist.SourceDistribution._get_build_requires_wheel
+def SourceDistribution_get_build_requires_wheel(self):
+    our_source = __np__.packaging.find_source_by_link(self.req.name,self.req.link.url)
+
+    if our_source is not None and "build_requires" in our_source:
+        return our_source["build_requires"]
+
+    return orig_SourceDistribution_get_build_requires_wheel(self)
+
+
+
+pip._internal.distributions.sdist.SourceDistribution._get_build_requires_wheel = SourceDistribution_get_build_requires_wheel
 
 
 import pip._internal.index.package_finder
@@ -369,61 +83,28 @@ from pip._internal.models.link import Link
 
 _PackageFinder = pip._internal.index.package_finder.PackageFinder
 
-"""
-def build_stub(
-    requirements,  # type: Iterable[InstallRequirement]
-    wheel_cache,  # type: WheelCache
-    verify,  # type: bool
-    build_options,  # type: List[str]
-    global_options,  # type: List[str]
-):
-    for r in requirements:
-        r.use_pep517 = False
-    return [], requirements
-
-wheel_builder.build = build_stub
-"""
-
 
 class PackageFinder(_PackageFinder):
     def find_all_candidates(self, project_name):
-        import pip._internal.pyproject
-        pip._internal.pyproject.load_pyproject_toml = our_load_pyproject_toml
-        pip._internal.req.req_install.load_pyproject_toml = our_load_pyproject_toml
-
-        if project_name == "setuptools":
-            import ensurepip
+        if project_name in builtin_packages:
             import pathlib
 
+            pkg_version = [x for x in ensurepip._PROJECTS if x[0] == project_name][0][1]
+
             our_uri = pathlib.Path(os.path.join(os.path.dirname(ensurepip.__file__), '_bundled',
-                                                ensurepip._get_packages()["setuptools"].wheel_name)).as_uri()
+                                                builtin_packages[project_name].wheel_name)).as_uri()
             return [InstallationCandidate(
-                project_name, ensurepip._SETUPTOOLS_VERSION, Link(our_uri)
+                project_name, pkg_version, Link(our_uri)
             )]
 
         base_candidates = _PackageFinder.find_all_candidates(self, project_name)
 
-        try:
-            package_index = getPackageJson("packages", project_name)
-        except __np__.NoSuchURL:
-            return base_candidates
-
-        package_sources = []
-        if "sources" in package_index:
-            for source in package_index["sources"]:
-                package_sources.append(
-                    InstallationCandidate(
-                        project_name, source["version"], Link(source["link"])
-                    )
-                )
-
-        return package_sources + base_candidates
+        return __np__.packaging.get_extra_sources_for_package(project_name) + base_candidates
 
 
 pip._internal.index.package_finder.PackageFinder = PackageFinder
 
 my_path = os.path.abspath(__file__)
-
 
 def get_runnable_pip() -> str:
     return my_path
@@ -433,20 +114,31 @@ import pip._internal.build_env
 
 pip._internal.build_env.get_runnable_pip = get_runnable_pip
 
+import pip._internal.cli.req_command
+
+orig_get_requirements = pip._internal.cli.req_command.RequirementCommand.get_requirements
+
+def our_get_requirements(self, args, options, finder, session):
+    reqs = orig_get_requirements(self, args, options, finder, session)
+    # This should prevent accidentally updating the pinned bundled packages.
+    return [x for x in reqs if x.req.name not in builtin_packages]
+
+pip._internal.cli.req_command.RequirementCommand.get_requirements = our_get_requirements
+
 import pip._internal.req.req_install
 
 orig_install = pip._internal.req.req_install.InstallRequirement.install
 
 
 def install(
-        self,
-        global_options=None,
-        root=None,
-        home=None,
-        prefix=None,
-        warn_script_location=True,
-        use_user_site=False,
-        pycompile=True,
+    self,
+    global_options=None,
+    root=None,
+    home=None,
+    prefix=None,
+    warn_script_location=True,
+    use_user_site=False,
+    pycompile=True,
 ):
     orig_install(self, global_options, root, home, prefix, warn_script_location, use_user_site, pycompile)
 
@@ -454,6 +146,27 @@ def install(
 
 
 pip._internal.req.req_install.InstallRequirement.install = install
+
+
+import pip._internal.resolution.resolvelib.candidates
+import pip._vendor.pkg_resources
+
+orig_prepare_distribution = pip._internal.resolution.resolvelib.candidates.LinkCandidate._prepare_distribution
+
+def _prepare_distribution(self):
+    build_script = __np__.packaging.find_build_script_for_package(self.name, self.version.public)
+
+    if build_script is not None:
+        with open(os.path.join(self._factory.preparer.build_dir, 'script.json'), 'w') as f:
+            json.dump({
+                "name": self.name,
+                "version": self.version.public,
+                "script_metadata": build_script
+            }, f)
+
+    return orig_prepare_distribution(self)
+
+pip._internal.resolution.resolvelib.candidates.LinkCandidate._prepare_distribution = _prepare_distribution
 
 
 def main():
