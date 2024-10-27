@@ -1,5 +1,6 @@
 import os
 import sys
+import sysconfig
 
 # Make the standard wheel, the real wheel module.
 # Need to keep a reference alive, or the module will loose all attributes.
@@ -14,5 +15,9 @@ import wheel as _wheel
 del sys.path[0]
 sys.modules["wheel"] = _wheel
 
+def our_generic_abi():
+    return [wheel.vendored.packaging.tags._normalize_string(sysconfig.get_config_var("SOABI"))]
+
 import wheel.vendored.packaging.tags
-wheel.vendored.packaging.tags.INTERPRETER_SHORT_NAMES["nuitkapython"] = "np"
+wheel.vendored.packaging.tags._generic_abi = our_generic_abi
+

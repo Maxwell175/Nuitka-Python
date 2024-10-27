@@ -142,7 +142,7 @@ def run_rebuild():
 
     ext_suffix = get_config_var("SO" if str is bytes else "EXT_SUFFIX")
 
-    extra_scan_dirs = []
+    extra_scan_dirs = [__np__.getDependencyInstallDir()]
     if platform.system() == "Windows":
         extra_scan_dirs.append(os.path.join(sysconfig.get_config_var('srcdir'), 'libs'))
 
@@ -384,6 +384,10 @@ extern "C" {
                     elif os.path.isfile(os.path.join(dir, lib) + ".lib"):
                         final_path = os.path.join(dir, lib) + ".lib"
                         break
+                else:
+                    # System libraries need to not end in .lib since the linker will automatically append it.
+                    if final_path.endswith(".lib"):
+                        final_path = final_path[:-4]
             if final_path not in final_lib_list:
                 final_lib_list.append(final_path)
 

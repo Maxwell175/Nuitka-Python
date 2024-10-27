@@ -6,6 +6,7 @@ import sysconfig
 import warnings
 import platform
 import rebuildpython
+import re
 
 import __np__
 import __np__.packaging
@@ -29,6 +30,36 @@ import ensurepip
 builtin_packages = ensurepip._get_packages()
 
 
+import pip._internal.utils.subprocess
+
+call_subprocess_orig = pip._internal.utils.subprocess.call_subprocess
+
+def our_call_subprocess(
+    cmd,
+    show_stdout = False,
+    cwd = None,
+    on_returncode = "raise",
+    extra_ok_returncodes = None,
+    extra_environ = None,
+    unset_environ = None,
+    spinner = None,
+    log_failed_cmd = True,
+    stdout_only = False,
+    *,
+    command_desc: str,
+):
+    if extra_ok_returncodes is None:
+        our_extra_ok_returncodes = []
+    else:
+        our_extra_ok_returncodes = list(extra_ok_returncodes)
+
+    # Some packages cause this error code to be returned even if all is ok.
+    our_extra_ok_returncodes += [3221225477]
+    return call_subprocess_orig(cmd, show_stdout, cwd, on_returncode, our_extra_ok_returncodes, extra_environ, unset_environ, spinner, log_failed_cmd, stdout_only, command_desc=command_desc)
+
+pip._internal.utils.subprocess.call_subprocess = our_call_subprocess
+
+
 import pip._internal.pyproject
 
 load_pyproject_toml_orig = pip._internal.pyproject.load_pyproject_toml
@@ -39,12 +70,14 @@ def our_load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
     # We will be taking over the build process.
     if os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json")):
         return pip._internal.pyproject.BuildSystemDetails(
-            [], "__np__.metabuild:managed_build", [], [real_pip_dir, os.path.dirname(__file__)])
+            [], "__np__.metabuild:managed_build", [], [os.path.dirname(__file__), real_pip_dir])
 
     result = load_pyproject_toml_orig(use_pep517, pyproject_toml, setup_py, req_name)
+    if result is None:
+        return None
     return pip._internal.pyproject.BuildSystemDetails(
         [x for x in result.requires if re.split(r'[><=]', x, 1)[0] not in builtin_packages],
-        result.backend, result.check, result.backend_path + [real_pip_dir])
+        result.backend, result.check, [os.path.dirname(__file__), real_pip_dir] + result.backend_path)
 
 
 
