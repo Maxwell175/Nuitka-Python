@@ -388,6 +388,10 @@ extern "C" {
                     # System libraries need to not end in .lib since the linker will automatically append it.
                     if final_path.endswith(".lib"):
                         final_path = final_path[:-4]
+
+                    # There is no such thing as a "limited abi" static lib.
+                    if final_path.endswith("python3"):
+                        continue
             if final_path not in final_lib_list:
                 final_lib_list.append(final_path)
 
@@ -397,7 +401,8 @@ extern "C" {
             ["python.c"], output_dir=build_dir, include_dirs=include_dirs, macros=macros
         )
 
-        extra_preargs_ = ["/LTCG"]
+        link_flags = ["/NODEFAULTLIB:python3.lib"]
+        extra_preargs_ = ["/LTCG", "/NODEFAULTLIB:python3.lib"]
         if not ('32bit', 'WindowsPE') == platform.architecture():
             # Not Win32 where is no PGO
             extra_preargs_.append("/USEPROFILE:PGD=python.pgd")
