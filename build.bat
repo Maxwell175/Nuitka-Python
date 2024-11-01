@@ -54,6 +54,10 @@ for /d %%d in (externals\openssl*) do (
    xcopy /i /q /s /y %SRC_LIB_DIR%\*.lib %OUTPUT_DIR%\dependency_libs\openssl\lib && xcopy /i /q /s /y %SRC_LIB_DIR%\include %OUTPUT_DIR%\dependency_libs\openssl\include 
 )
 
+for /d %%d in (externals\libffi*) do (
+   xcopy /i /q /s /y %SRC_LIB_DIR%\include %OUTPUT_DIR%\dependency_libs\libffi\include
+)
+
 %OUTPUT_DIR%\python.exe -m rebuildpython
 
 echo "Ok, Nuitka Python now lives in %OUTPUT_DIR% folder"
