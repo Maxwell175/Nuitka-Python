@@ -69,8 +69,13 @@ def our_load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
 
     # We will be taking over the build process.
     if os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json")):
+        with open(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json"), 'r') as f:
+            data = json.load(f)
+        requires = []
+        if 'requires' in data['script_metadata']:
+            requires = data['script_metadata']['requires']
         return pip._internal.pyproject.BuildSystemDetails(
-            [], "__np__.metabuild:managed_build", [], [os.path.dirname(__file__), real_pip_dir])
+            requires, "__np__.metabuild:managed_build", [], [os.path.dirname(__file__), real_pip_dir])
 
     result = load_pyproject_toml_orig(use_pep517, pyproject_toml, setup_py, req_name)
     if result is None:
@@ -131,6 +136,12 @@ class PackageFinder(_PackageFinder):
             )]
 
         base_candidates = _PackageFinder.find_all_candidates(self, project_name)
+
+        build_script = __np__.packaging.find_build_script_for_package(project_name)
+
+        if build_script:
+            # If we have a build script, filter out wheels.
+            base_candidates = [x for x in base_candidates if not x.link.is_wheel]
 
         return __np__.packaging.get_extra_sources_for_package(project_name) + base_candidates
 

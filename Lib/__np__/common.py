@@ -227,12 +227,17 @@ def run_with_output(*args, **kwargs):
     quiet = kwargs.pop("quiet", False)
     assert not kwargs
 
+    env = os.environ.copy()
+    # Don't use the pip path customization here. Just replicate our current path.
+    env["PYTHONPATH"] = os.pathsep.join([x for x in sys.path if not x.endswith(os.path.sep + "site")])
+
     p = subprocess.Popen(
         args,
         universal_newlines=True,
         stdin=stdin,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        env=env,
     )
 
     output = ""

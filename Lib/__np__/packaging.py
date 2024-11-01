@@ -240,7 +240,7 @@ def get_extra_sources_for_package(package_name):
             )
     return package_sources
 
-def find_build_script_for_package(package_name, version):
+def find_build_script_for_package(package_name, version=None):
     try:
         package_index = getPackageJson("packages", package_name)
     except __np__.NoSuchURL:
@@ -249,10 +249,10 @@ def find_build_script_for_package(package_name, version):
     matched_source = None
     for source in package_index["scripts"]:
         matched_metadata = True
-        if "metadata" in source and "Version" in source["metadata"]:
+        if version is not None and "metadata" in source and "Version" in source["metadata"]:
             matched_metadata = fnmatch.fnmatch(version, source["metadata"]["Version"])
 
-        if matched_metadata:
+        if matched_metadata or version is None:
             matched_source = source
             break
 
