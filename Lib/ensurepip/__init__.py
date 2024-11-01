@@ -9,12 +9,14 @@ from importlib import resources
 
 
 __all__ = ["version", "bootstrap", "_PROJECTS", "_get_packages"]
-_PACKAGE_NAMES = ('setuptools', 'pip', 'wheel')
+_PACKAGE_NAMES = ('setuptools', 'packaging', 'pip', 'wheel')
 _SETUPTOOLS_VERSION = "75.2.0.post20241019"
+_PACKAGING_VERSION = "24.2.dev0"
 _PIP_VERSION = "23.3.2"
 _WHEEL_VERSION = "0.42.0"
 _PROJECTS = [
     ("setuptools", _SETUPTOOLS_VERSION, "py3"),
+    ("packaging", _PACKAGING_VERSION, "py3"),
     ("pip", _PIP_VERSION, "py3"),
     ("wheel", _WHEEL_VERSION, "py3"),
 ]
