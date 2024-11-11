@@ -516,7 +516,13 @@ extern "C" {
                                     "-flto=thin",
                                     "-framework", "SystemConfiguration",
                                     "-framework", "CoreFoundation",
+                                    "-framework", "Cocoa",
                                     "-framework", "Carbon",
+                                    "-framework", "IOKit",
+                                    "-framework", "QuartzCore",
+                                    "-framework", "CoreServices",
+                                    "-framework", "ApplicationServices",
+                                    "-framework", "UniformTypeIdentifiers"
                                 ]
         num_link_threads = os.environ.get("LINK_THREADS", None)
         if num_link_threads is not None:

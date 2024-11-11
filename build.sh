@@ -166,16 +166,6 @@ make install
 cd ..
 fi
 
-if [ ! -d editline-1.17.1 ]; then
-curl -L https://github.com/troglobit/editline/releases/download/1.17.1/editline-1.17.1.tar.gz -o editline.tar.gz
-tar -xf editline.tar.gz
-cd editline-1.17.1
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(nproc --all)
-make install
-cd ..
-fi
-
 if [ ! -d xtrans-1.5.0 ]; then
 curl -L https://xorg.freedesktop.org/releases/individual/lib/xtrans-1.5.0.tar.gz -o xtrans.tar.gz
 tar -xf xtrans.tar.gz

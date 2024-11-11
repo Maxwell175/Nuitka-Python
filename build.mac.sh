@@ -17,120 +17,189 @@ echo Building for architecture $arch
 # the python build process ends up running a find -delete that
 # happens to also delete all the static libraries that we built.
 export "PREFIX=$(pwd)/../Nuitka-Python-Deps"
-export "CFLAGS=-arch $arch -mmacosx-version-min=10.9 -I${PREFIX}/include -I$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/ffi -flto=thin"
+export "PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
+export "CFLAGS=-arch $arch -mmacosx-version-min=10.9 -I${PREFIX}/include -fPIC -flto=thin"
+export "CXXFLAGS=-arch $arch -mmacosx-version-min=10.9 -I${PREFIX}/include -fPIC -flto=thin"
 export "LDFLAGS=-arch $arch -L${PREFIX}/lib"
 export "MACOSX_DEPLOYMENT_TARGET=10.9"
 
+mkdir -p ${PREFIX}/lib
+
+if [ ! -h ${PREFIX}/lib64 ]; then
+  ln -s lib ${PREFIX}/lib64
+fi
 
 mkdir -p dep-build
 cd dep-build
 
-if [ ! -d readline-8.1 ]; then
-curl https://ftp.gnu.org/gnu/readline/readline-8.1.tar.gz -o readline.tar.gz
-tar -xf readline.tar.gz
-cd readline-8.1
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(sysctl -n hw.ncpu)
-make install
-cd ..
-fi
-
-if [ ! -d ncurses-6.3 ]; then
-curl https://ftp.gnu.org/gnu/ncurses/ncurses-6.3.tar.gz -o ncurses.tar.gz
+if [ ! -d ncurses-6.4 ]; then
+curl https://ftp.gnu.org/gnu/ncurses/ncurses-6.4.tar.gz -o ncurses.tar.gz
 tar -xf ncurses.tar.gz
-cd ncurses-6.3
+cd ncurses-6.4
+./configure --prefix=${PREFIX} --disable-shared --enable-termcap --enable-widec --enable-getcap
+make -j$(sysctl -n hw.ncpu)
+make install
+for header in ${PREFIX}/include/ncursesw/*; do
+    ln -s ncursesw/$(basename $header) ${PREFIX}/include/;
+done
+cd ..
+fi
+
+if [ ! -d editline-1.17.1 ]; then
+curl -L https://github.com/troglobit/editline/releases/download/1.17.1/editline-1.17.1.tar.gz -o editline.tar.gz
+tar -xf editline.tar.gz
+cd editline-1.17.1
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(sysctl -n hw.ncpu)
 make install
 cd ..
 fi
 
-if [ ! -d sqlite-autoconf-3390200 ]; then
-curl https://sqlite.org/2022/sqlite-autoconf-3390200.tar.gz -o sqlite.tar.gz
+if [ ! -d sqlite-autoconf-3440000 ]; then
+curl https://sqlite.org/2023/sqlite-autoconf-3440000.tar.gz -o sqlite.tar.gz
 tar -xf sqlite.tar.gz
-cd sqlite-autoconf-3390200
+cd sqlite-autoconf-3440000
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(sysctl -n hw.ncpu)
 make install
 cd ..
 fi
 
-if [ ! -d openssl-1.1.1q ]; then
-curl https://www.openssl.org/source/openssl-1.1.1q.tar.gz -o openssl.tar.gz
+if [ ! -d openssl-3.1.4 ]; then
+curl -L https://www.openssl.org/source/openssl-3.1.4.tar.gz -o openssl.tar.gz
 tar -xf openssl.tar.gz
-cd openssl-1.1.1q
-if [ "$arch" = "arm64" ]; then
-  ./Configure --prefix=${PREFIX} darwin64-arm64-cc enable-ec_nistp_64_gcc_128 no-shared no-tests
-else
-  ./Configure --prefix=${PREFIX} darwin64-x86_64-cc enable-ec_nistp_64_gcc_128 no-shared no-tests
-fi
+cd openssl-3.1.4
+./Configure --prefix=${PREFIX} --libdir=lib darwin64-$arch enable-ec_nistp_64_gcc_128 no-shared no-tests
 make depend all -j$(sysctl -n hw.ncpu)
-make install 
-cd ..
-fi
-
-if [ ! -d gdbm-1.23 ]; then
-curl https://ftp.gnu.org/gnu/gdbm/gdbm-1.23.tar.gz -o gdbm.tar.gz
-tar -xf gdbm.tar.gz
-cd gdbm-1.23
-./configure --prefix=${PREFIX} --disable-shared
-make -j$(sysctl -n hw.ncpu)
 make install
 cd ..
 fi
 
 if [ ! -d bzip2-1.0.8 ]; then
-curl https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz -o bzip2.tar.gz
+curl -L https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz -o bzip2.tar.gz
 tar -xf bzip2.tar.gz
 cd bzip2-1.0.8
-make install "PREFIX=$PREFIX" CFLAGS=-mmacosx-version-min=10.9 LDFLAGS=-mmacosx-version-min=10.9 -j$(sysctl -n hw.ncpu)
+make install "PREFIX=$PREFIX" -j$(sysctl -n hw.ncpu)
 cd ..
 fi
 
-if [ ! -d util-linux-2.38 ]; then
-curl https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v2.38/util-linux-2.38.tar.gz -o util-linux.tar.gz
-tar -xf util-linux.tar.gz
-cd util-linux-2.38
-./configure --prefix=${PREFIX} --disable-shared --disable-all-programs --enable-libuuid
-make -j$(sysctl -n hw.ncpu)
-make install
-cd ..
-fi
-
-if [ ! -d xz-5.2.5 ]; then
-curl -L https://downloads.sourceforge.net/project/lzmautils/xz-5.2.5.tar.gz -o xz.tar.gz
+if [ ! -d xz-5.4.5 ]; then
+curl -L https://downloads.sourceforge.net/project/lzmautils/xz-5.4.5.tar.gz -o xz.tar.gz
 tar -xf xz.tar.gz
-cd xz-5.2.5
+cd xz-5.4.5
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(sysctl -n hw.ncpu)
 make install
 cd ..
 fi
 
-if [ ! -d zlib-1.2.12 ]; then
-curl -L https://zlib.net/zlib-1.2.12.tar.gz -o zlib.tar.gz
+if [ ! -d libffi-3.4.6 ]; then
+curl -L https://github.com/libffi/libffi/releases/download/v3.4.6/libffi-3.4.6.tar.gz -o libffi.tar.gz
+tar -xf libffi.tar.gz
+cd libffi-3.4.6
+./configure --prefix=${PREFIX} --disable-shared
+make -j$(nproc --all)
+make install
+cd ..
+fi
+
+if [ ! -d zlib-latest ]; then
+curl -L https://www.zlib.net/current/zlib.tar.gz -o zlib.tar.gz
 tar -xf zlib.tar.gz
-cd zlib-1.2.12
+mv zlib-* zlib-latest
+cd zlib-latest
 ./configure --prefix=${PREFIX} --static
 make -j$(sysctl -n hw.ncpu)
 make install
-cd ..   
+cd ..
 fi
 
-if [ ! -d libiconv-1.17 ]; then
-curl https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz -o iconv.tar.gz
-tar -xf iconv.tar.gz
-cd libiconv-1.17
+if [ ! -d libxcrypt-4.4.36 ]; then
+curl -L https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz -o libxcrypt.tar.xz
+tar -xf libxcrypt.tar.xz
+cd libxcrypt-4.4.36
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(sysctl -n hw.ncpu)
 make install
 cd ..
 fi
 
-if [ ! -d gettext-0.21 ]; then
-curl https://ftp.gnu.org/pub/gnu/gettext/gettext-0.21.tar.gz -o gettext.tar.gz
-tar -xf gettext.tar.gz
-cd gettext-0.21
+if [ ! -d libpng-1.6.39 ]; then
+curl -L http://downloads.sourceforge.net/project/libpng/libpng16/1.6.39/libpng-1.6.39.tar.xz -o libpng.tar.gz
+tar -xf libpng.tar.gz
+cd libpng-1.6.39
+./configure --prefix=${PREFIX} --disable-shared --with-zlib-prefix=${PREFIX}
+make pnglibconf.h
+sed -i '' -e 's/define PNG_ZLIB_VERNUM 0x[0-9a-z][0-9a-z][0-9a-z][0-9a-z]/define PNG_ZLIB_VERNUM 0/g' pnglibconf.h
+make -j$(sysctl -n hw.ncpu)
+make install
+cd ..
+fi
+
+if [ ! -d harfbuzz-8.3.0 ]; then
+curl -L https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz -o harfbuzz.tar.gz
+tar -xf harfbuzz.tar.gz
+cd harfbuzz-8.3.0
+./configure --prefix=${PREFIX} --disable-shared
+make -j$(sysctl -n hw.ncpu)
+make install
+cd ..
+fi
+
+if [ ! -d freetype-2.13.2 ]; then
+curl -L https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz -o freetype.tar.gz
+tar -xf freetype.tar.gz
+cd freetype-2.13.2
+./configure --prefix=${PREFIX} --disable-shared --with-brotli=no
+make -j$(sysctl -n hw.ncpu)
+make install
+cd ..
+fi
+
+if [ ! -d tcl8.6.15 ]; then
+curl -L http://downloads.sourceforge.net/project/tcl/Tcl/8.6.15/tcl8.6.15-src.tar.gz -o tcl.tar.gz
+tar -xf tcl.tar.gz
+cd tcl8.6.15/unix
+./configure --prefix=${PREFIX} --enable-shared=no --enable-threads
+make -j$(sysctl -n hw.ncpu)
+make install
+cd ../..
+fi
+
+if [ ! -d expat-2.5.0 ]; then
+curl -L https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz -o expat.tar.gz
+tar -xf expat.tar.gz
+cd expat-2.5.0
+./configure --prefix=${PREFIX} --disable-shared
+make -j$(sysctl -n hw.ncpu)
+make install
+cd ..
+fi
+
+if [ ! -d tk8.6.15 ]; then
+curl -L http://downloads.sourceforge.net/project/tcl/Tcl/8.6.15/tk8.6.15-src.tar.gz -o tk.tar.gz
+tar -xf tk.tar.gz
+cd tk8.6.15/unix
+./configure --prefix=${PREFIX} --enable-shared=no --enable-threads --with-tcl=${PREFIX}/lib --enable-aqua
+make -j$(sysctl -n hw.ncpu)
+make install
+cd ../..
+fi
+
+if [ ! -d mpdecimal-4.0.0 ]; then
+curl -L https://www.bytereef.org/software/mpdecimal/releases/mpdecimal-4.0.0.tar.gz -o mpdecimal.tar.gz
+tar -xf mpdecimal.tar.gz
+cd mpdecimal-4.0.0
+./configure --prefix=${PREFIX} --disable-shared
+make -j$(sysctl -n hw.ncpu)
+make install
+cd ..
+fi
+
+if [ ! -d libb2-0.98.1 ]; then
+curl -L https://github.com/BLAKE2/libb2/releases/download/v0.98.1/libb2-0.98.1.tar.gz -o libb2.tar.gz
+tar -xf libb2.tar.gz
+cd libb2-0.98.1
 ./configure --prefix=${PREFIX} --disable-shared
 make -j$(sysctl -n hw.ncpu)
 make install
@@ -175,14 +244,14 @@ cp Modules/Setup.macos Modules/Setup
 
 export "LDFLAGS=-L${PREFIX}/lib"
 
-# The UCS4 has best compatibility with wheels on PyPI it seems.
 ./configure "--prefix=$target" --disable-shared --enable-ipv6 --enable-unicode=ucs4 \
-  --enable-optimizations --with-lto --with-computed-gotos --with-fpectl \
+  --enable-optimizations --with-lto --with-computed-gotos --with-fpectl --without-readline \
+  --with-system-expat --with-system-libmpdec \
   CC="$CC" \
   CXX="$CXX" \
-  CFLAGS="-g -mmacosx-version-min=10.9 $CFLAGS" \
+  CFLAGS="-g $CFLAGS" \
   LDFLAGS="-arch $arch -g -Xlinker $LDFLAGS" \
-  LIBS="-lffi -lbz2 -luuid -lsqlite3 -llzma" \
+  LIBS="-lffi -lbz2 -lsqlite3 -llzma" \
   ax_cv_c_float_words_bigendian=no
 
 make -j 32 \
@@ -205,18 +274,21 @@ $ELEVATE mv "$target/lib/python${long_version}/pip.py" "$target/lib/python${long
 # Copy over the compiled dependencies.
 $ELEVATE mkdir -p "$target/dependency_libs"
 $ELEVATE cp -r "$(pwd)/../Nuitka-Python-Deps" "$target/dependency_libs/base"
-$ELEVATE ln -s base "$target/dependency_libs/readline"
-$ELEVATE ln -s base "$target/dependency_libs/ncurses"
-$ELEVATE ln -s base "$target/dependency_libs/sqlite"
-$ELEVATE ln -s base "$target/dependency_libs/openssl"
-$ELEVATE ln -s base "$target/dependency_libs/gdbm"
 $ELEVATE ln -s base "$target/dependency_libs/bzip2"
-$ELEVATE ln -s base "$target/dependency_libs/uuid"
+$ELEVATE ln -s base "$target/dependency_libs/editline"
+$ELEVATE ln -s base "$target/dependency_libs/expat"
+$ELEVATE ln -s base "$target/dependency_libs/freetype"
+$ELEVATE ln -s base "$target/dependency_libs/harfbuzz"
+$ELEVATE ln -s base "$target/dependency_libs/b2"
+$ELEVATE ln -s base "$target/dependency_libs/png"
+$ELEVATE ln -s base "$target/dependency_libs/xcrypt"
+$ELEVATE ln -s base "$target/dependency_libs/mpdecimal"
+$ELEVATE ln -s base "$target/dependency_libs/ncurses"
+$ELEVATE ln -s base "$target/dependency_libs/openssl"
+$ELEVATE ln -s base "$target/dependency_libs/sqlite"
+$ELEVATE ln -s base "$target/dependency_libs/tcltk"
 $ELEVATE ln -s base "$target/dependency_libs/xz"
-$ELEVATE ln -s base "$target/dependency_libs/ffi"
 $ELEVATE ln -s base "$target/dependency_libs/zlib"
-$ELEVATE ln -s base "$target/dependency_libs/iconv"
-$ELEVATE ln -s base "$target/dependency_libs/gettext"
 
 $ELEVATE "$target/bin/python${long_version}" -m rebuildpython
 

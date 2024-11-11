@@ -12,6 +12,8 @@
 #include "pyconfig.h"
 #include "pymacconfig.h"
 
+#undef HAVE_DYNAMIC_LOADING
+
 #if defined(__sgi) && !defined(_SGI_MP_SOURCE)
 #  define _SGI_MP_SOURCE
 #endif
