@@ -101,7 +101,7 @@ def run_rebuild():
     new_hash = get_lib_hash()
 
     # Try to avoid building if nothing has changed.
-    if old_hash == new_hash:
+    if old_hash == new_hash and False:
         print("No native library changes detected. Not rebuilding interpreter.")
         return
 
@@ -155,7 +155,8 @@ def run_rebuild():
         for file in find_files(
                 path, "*.lib" if platform.system() == "Windows" else "*.a"
         ):
-            if file in checkedLibs:
+            normalized_file = os.path.normpath(file)
+            if normalized_file in checkedLibs:
                 continue
 
             filename_base = os.path.basename(file)
@@ -164,7 +165,7 @@ def run_rebuild():
             if python_lib is not None and filename_base.endswith(sysconfig.get_config_var("LIBRARY")):
                 continue
 
-            checkedLibs.add(filename_base)
+            checkedLibs.add(normalized_file)
 
             initFunctions = getPythonInitFunctions(compiler, file)
             print(file, initFunctions)
@@ -177,6 +178,8 @@ def run_rebuild():
                 dirpath, filename = os.path.split(relativePath)
                 if platform.system() != "Windows" and filename.startswith("lib"):
                     filename = filename[3:]
+                if filename.endswith(".a.a"):
+                    filename = filename[:-2]
                 if ext_suffix and filename.endswith(ext_suffix):
                     filename = filename[: len(ext_suffix) * -1]
                 if filename.endswith(".a"):
