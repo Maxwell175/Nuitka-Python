@@ -47,6 +47,7 @@ if "%ARCH_OPT%" EQU "-x86" (
 )
 
 move %SRC_TOOLS_DIR%\Lib\pip.py.bak %SRC_TOOLS_DIR%\Lib\pip.py
+copy %SRC_TOOLS_DIR%\python311.lib %SRC_TOOLS_DIR%\libs\python311.lib
 
 xcopy /i /q /s /y %SRC_TOOLS_DIR% %OUTPUT_DIR%
 
