@@ -90,6 +90,21 @@ def get_lib_hash():
 
     return hashlib.sha256(hash_string.encode('ascii')).hexdigest()
 
+
+def is_lib_valid(path):
+    if os.path.isfile(path):
+        if __np__.getToolsInstallDir() in path:
+            # Disqualify libs from inside build tools.
+            return False
+        
+        with open(path, "rb") as f:
+            if f.read(7) == b"!<arch>":
+                return True
+        return False
+    else:
+        return True
+
+
 def run_rebuild():
     try:
         with open(os.path.join(interpreter_prefix, "link.json"), 'r') as f:
@@ -398,7 +413,7 @@ extern "C" {
             if final_path not in final_lib_list:
                 final_lib_list.append(final_path)
 
-        link_libs = final_lib_list
+        link_libs = [x for x in final_lib_list if is_lib_valid(x)]
 
         compiler.compile(
             ["python.c"], output_dir=build_dir, include_dirs=include_dirs, macros=macros

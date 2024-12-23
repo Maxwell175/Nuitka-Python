@@ -68,7 +68,7 @@ def our_load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
     has_setup = os.path.isfile(setup_py)
 
     # We will be taking over the build process.
-    if os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json")):
+    if not req_name.startswith("file://") and os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json")):
         with open(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json"), 'r') as f:
             data = json.load(f)
         requires = []
@@ -82,7 +82,7 @@ def our_load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
         return None
     return pip._internal.pyproject.BuildSystemDetails(
         [x for x in result.requires if re.split(r'[><=]', x, 1)[0] not in builtin_packages],
-        result.backend, result.check, [os.path.dirname(__file__), real_pip_dir] + result.backend_path)
+        result.backend, result.check, sys.path + result.backend_path)
 
 
 
@@ -165,7 +165,7 @@ orig_get_requirements = pip._internal.cli.req_command.RequirementCommand.get_req
 def our_get_requirements(self, args, options, finder, session):
     reqs = orig_get_requirements(self, args, options, finder, session)
     # This should prevent accidentally updating the pinned bundled packages.
-    return [x for x in reqs if x.req.name not in builtin_packages]
+    return [x for x in reqs if x.req is None or x.req.name not in builtin_packages]
 
 pip._internal.cli.req_command.RequirementCommand.get_requirements = our_get_requirements
 
@@ -198,7 +198,10 @@ import pip._vendor.pkg_resources
 orig_prepare_distribution = pip._internal.resolution.resolvelib.candidates.LinkCandidate._prepare_distribution
 
 def _prepare_distribution(self):
-    build_script = __np__.packaging.find_build_script_for_package(self.name, self.version.public)
+    try:
+        build_script = __np__.packaging.find_build_script_for_package(self.name, self.version.public)
+    except:
+        build_script = None
 
     if build_script is not None:
         with open(os.path.join(self._factory.preparer.build_dir, 'script.json'), 'w') as f:

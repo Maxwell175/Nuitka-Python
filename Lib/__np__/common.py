@@ -220,6 +220,28 @@ def download_extract(url, destination):
         extract_archive(downloaded_file, destination)
 
 
+def run(*args, **kwargs):
+    import subprocess
+
+    stdin = kwargs.pop("stdin", None)
+    quiet = kwargs.pop("quiet", False)
+    assert not kwargs
+
+    env = os.environ.copy()
+    # Don't use the pip path customization here. Just replicate our current path.
+    env["PYTHONPATH"] = os.pathsep.join([x for x in sys.path if not x.endswith(os.path.sep + "site")])
+
+    p = subprocess.Popen(
+        args,
+        universal_newlines=True,
+        stdin=stdin,
+        env=env,
+    )
+
+    p.wait()
+    if p.returncode != 0:
+        raise subprocess.CalledProcessError(p.returncode, args, output)
+
 def run_with_output(*args, **kwargs):
     import subprocess
 
@@ -314,7 +336,7 @@ def find_build_tool_exe(tool_name, exe):
 
 
 def run_build_tool_exe(tool_name, exe, *args, **kwargs):
-    return run_with_output(find_build_tool_exe(tool_name, exe), *args, **kwargs)
+    run(find_build_tool_exe(tool_name, exe), *args, **kwargs)
 
 
 def apply_patch(patch_file, directory):

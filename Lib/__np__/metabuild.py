@@ -27,7 +27,7 @@ class ManagedBackend():
         with open(os.path.join("..", "script.json")) as f:
             metadata = json.load(f)
 
-        __np__.packaging.build_package(metadata['name'], metadata['version'], metadata['script_metadata'], wheel_directory)
+        return __np__.packaging.build_package(metadata['name'], metadata['version'], metadata['script_metadata'], wheel_directory)
 
 
 managed_build = ManagedBackend()
