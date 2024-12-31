@@ -225,9 +225,9 @@ def run(*args, **kwargs):
 
     stdin = kwargs.pop("stdin", None)
     quiet = kwargs.pop("quiet", False)
+    env = kwargs.pop("env", os.environ.copy())
     assert not kwargs
 
-    env = os.environ.copy()
     # Don't use the pip path customization here. Just replicate our current path.
     env["PYTHONPATH"] = os.pathsep.join([x for x in sys.path if not x.endswith(os.path.sep + "site")])
 
@@ -240,16 +240,16 @@ def run(*args, **kwargs):
 
     p.wait()
     if p.returncode != 0:
-        raise subprocess.CalledProcessError(p.returncode, args, output)
+        raise subprocess.CalledProcessError(p.returncode, args)
 
 def run_with_output(*args, **kwargs):
     import subprocess
 
     stdin = kwargs.pop("stdin", None)
     quiet = kwargs.pop("quiet", False)
+    env = kwargs.pop("env", os.environ.copy())
     assert not kwargs
 
-    env = os.environ.copy()
     # Don't use the pip path customization here. Just replicate our current path.
     env["PYTHONPATH"] = os.pathsep.join([x for x in sys.path if not x.endswith(os.path.sep + "site")])
 

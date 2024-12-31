@@ -68,14 +68,19 @@ def our_load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
     has_setup = os.path.isfile(setup_py)
 
     # We will be taking over the build process.
-    if not req_name.startswith("file://") and os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json")):
-        with open(os.path.join(os.path.dirname(os.path.dirname(pyproject_toml)), "script.json"), 'r') as f:
+    if not req_name.startswith("file://") and os.path.isfile(os.path.join(os.path.dirname(pyproject_toml), "..", "np_script.json")):
+        with open(os.path.join(os.path.dirname(pyproject_toml), "..", "np_script.json"), 'r') as f:
             data = json.load(f)
-        requires = []
-        if 'requires' in data['script_metadata']:
-            requires = data['script_metadata']['requires']
-        return pip._internal.pyproject.BuildSystemDetails(
-            requires, "__np__.metabuild:managed_build", [], [os.path.dirname(__file__), real_pip_dir])
+
+        package_name = re.split(r'[><= ]', req_name, 1)[0]
+        if package_name in data:
+            package_data = data[package_name]
+
+            requires = []
+            if 'requires' in package_data['script_metadata']:
+                requires = package_data['script_metadata']['requires']
+            return pip._internal.pyproject.BuildSystemDetails(
+                requires, "__np__.metabuild:managed_build", [], [os.path.dirname(__file__), real_pip_dir])
 
     result = load_pyproject_toml_orig(use_pep517, pyproject_toml, setup_py, req_name)
     if result is None:
@@ -204,14 +209,22 @@ def _prepare_distribution(self):
         build_script = None
 
     if build_script is not None:
-        with open(os.path.join(self._factory.preparer.build_dir, 'script.json'), 'w') as f:
-            json.dump({
+        data = {}
+        try:
+            with open(os.path.join(self._factory.preparer.build_dir, 'np_script.json'), 'r') as f:
+                data = json.load(f)
+        except:
+            pass
+        data[self.name] = {
                 "name": self.name,
                 "version": self.version.public,
                 "script_metadata": build_script
-            }, f)
+            }
+        with open(os.path.join(self._factory.preparer.build_dir, 'np_script.json'), 'w') as f:
+            json.dump(data, f)
 
-    return orig_prepare_distribution(self)
+    result = orig_prepare_distribution(self)
+    return result
 
 pip._internal.resolution.resolvelib.candidates.LinkCandidate._prepare_distribution = _prepare_distribution
 

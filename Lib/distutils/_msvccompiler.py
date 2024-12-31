@@ -409,10 +409,15 @@ class MSVCCompiler(CCompiler) :
                           output_libname,
                           output_dir=None,
                           debug=0,
-                          target_lang=None):
+                          target_lang=None,
+                          extra_preargs=None):
 
         if not self.initialized:
             self.initialize()
+        
+        if extra_preargs is None:
+            extra_preargs = []
+               
         objects, output_dir = self._fix_object_args(objects, output_dir)
         output_filename = self.library_filename(output_libname,
                                                 output_dir=output_dir)
@@ -422,8 +427,8 @@ class MSVCCompiler(CCompiler) :
             if debug:
                 pass # XXX what goes here?
             try:
-                log.debug('Executing "%s" %s', self.lib, ' '.join(lib_args))
-                self.spawn([self.lib] + lib_args)
+                log.debug('Executing "%s" %s', self.lib, ' '.join(extra_preargs + lib_args))
+                self.spawn([self.lib] + extra_preargs + lib_args)
             except DistutilsExecError as msg:
                 raise LibError(msg)
         else:

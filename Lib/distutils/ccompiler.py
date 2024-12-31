@@ -583,7 +583,7 @@ class CCompiler:
         pass
 
     def create_static_lib(self, objects, output_libname, output_dir=None,
-                          debug=0, target_lang=None):
+                          debug=0, target_lang=None, extra_preargs=None):
         """Link a bunch of stuff together to create a static library file.
         The "bunch of stuff" consists of the list of object files supplied
         as 'objects', the extra object files supplied to

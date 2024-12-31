@@ -96,7 +96,7 @@ def is_lib_valid(path):
         if __np__.getToolsInstallDir() in path:
             # Disqualify libs from inside build tools.
             return False
-        
+
         with open(path, "rb") as f:
             if f.read(7) == b"!<arch>":
                 return True
@@ -116,7 +116,7 @@ def run_rebuild():
     new_hash = get_lib_hash()
 
     # Try to avoid building if nothing has changed.
-    if old_hash == new_hash and False:
+    if old_hash == new_hash:
         print("No native library changes detected. Not rebuilding interpreter.")
         return
 
@@ -304,6 +304,17 @@ def run_rebuild():
                 extra_link_args += linkData.get("extra_postargs", [])
         libIdx += 1
 
+    for build_tool in os.listdir(__np__.getToolsInstallDir()):
+        tool_link_file = os.path.join(__np__.getToolsInstallDir(), build_tool, "link.json")
+        if os.path.isfile(tool_link_file):
+            with open(tool_link_file, "r") as f:
+                linkData = json.load(f)
+                link_libs += linkData.get("libraries", [])
+                library_dirs += [
+                    os.path.join(os.path.dirname(tool_link_file), x)
+                    for x in linkData.get("library_dirs", [])
+                ]
+
     link_libs = list(set(link_libs))
     library_dirs = list(set(library_dirs))
 
@@ -421,9 +432,9 @@ extern "C" {
 
         link_flags = ["/NODEFAULTLIB:python3.lib"]
         extra_preargs_ = ["/LTCG", "/NODEFAULTLIB:python3.lib"]
-        if not ('32bit', 'WindowsPE') == platform.architecture():
-            # Not Win32 where is no PGO
-            extra_preargs_.append("/USEPROFILE:PGD=python.pgd")
+        #if not ('32bit', 'WindowsPE') == platform.architecture():
+        #    # Not Win32 where is no PGO
+        #    extra_preargs_.append("/USEPROFILE:PGD=python.pgd")
 
         compiler.link_executable(
             [os.path.join(build_dir, "python.obj")],
@@ -433,6 +444,9 @@ extern "C" {
             library_dirs=library_dirs,
             extra_preargs=extra_preargs_,
         )
+
+        if 'Test' not in __np__.run_with_output(os.path.join(build_dir, "python.exe"), "-c", "print('Test')"):
+            raise RuntimeError("Failed to rebuild a working interpreter!")
 
         # Replace running interpreter by moving current version to a temp file, then marking it for deletion.
         interpreter_path = sys.executable

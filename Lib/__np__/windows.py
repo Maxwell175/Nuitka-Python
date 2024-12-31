@@ -28,6 +28,18 @@ def setup_compiler_env():
     os.environ.update(vc_env)
 
 
+def filter_paths_containing(exe_name):
+    new_path = []
+    for dir in os.environ.get("PATH", "").split(os.pathsep):
+        try:
+            if not os.path.exists(os.path.join(dir, exe_name)):
+                new_path.append(dir)
+        except:
+            pass
+    
+    os.environ["PATH"] = os.pathsep.join(new_path)
+
+
 def run_compiler_exe(exe, *args):
     return run_with_output(find_compiler_exe(exe), *args)
 
