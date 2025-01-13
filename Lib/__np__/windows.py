@@ -8,23 +8,35 @@ def get_compiler_module():
 
 def get_vs_version():
     compiler_module = get_compiler_module()
-    platform = compiler_module.get_platform()
-    vc_env = compiler_module._get_vc_env(compiler_module.PLAT_TO_VCVARS[platform])
+    from distutils.util import get_host_platform, get_platform
+    if hasattr(compiler_module, "PLAT_TO_VCVARS"):
+        vcargs = compiler_module.PLAT_TO_VCVARS[get_platform()]
+    else:
+        vcargs = compiler_module._get_vcvars_spec(get_host_platform(), get_platform())
+    vc_env = compiler_module._get_vc_env(vcargs)
     return float(vc_env.get("visualstudioversion"))
 
 
 def find_compiler_exe(exe):
     compiler_module = get_compiler_module()
-    platform = compiler_module.get_platform()
-    vc_env = compiler_module._get_vc_env(compiler_module.PLAT_TO_VCVARS[platform])
+    from distutils.util import get_host_platform, get_platform
+    if hasattr(compiler_module, "PLAT_TO_VCVARS"):
+        vcargs = compiler_module.PLAT_TO_VCVARS[get_platform()]
+    else:
+        vcargs = compiler_module._get_vcvars_spec(get_host_platform(), get_platform())
+    vc_env = compiler_module._get_vc_env(vcargs)
     paths = vc_env.get("path", "").split(os.pathsep)
     return compiler_module._find_exe(exe, paths)
 
 
 def setup_compiler_env():
     compiler_module = get_compiler_module()
-    platform = compiler_module.get_platform()
-    vc_env = compiler_module._get_vc_env(compiler_module.PLAT_TO_VCVARS[platform])
+    from distutils.util import get_host_platform, get_platform
+    if hasattr(compiler_module, "PLAT_TO_VCVARS"):
+        vcargs = compiler_module.PLAT_TO_VCVARS[get_platform()]
+    else:
+        vcargs = compiler_module._get_vcvars_spec(get_host_platform(), get_platform())
+    vc_env = compiler_module._get_vc_env(vcargs)
     os.environ.update(vc_env)
 
 
@@ -36,7 +48,7 @@ def filter_paths_containing(exe_name):
                 new_path.append(dir)
         except:
             pass
-    
+
     os.environ["PATH"] = os.pathsep.join(new_path)
 
 
