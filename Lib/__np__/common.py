@@ -10,7 +10,6 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
-from wheel.wheelfile import WheelFile
 from distutils.util import get_platform  # pylint: disable=import-error
 
 
@@ -490,10 +489,10 @@ def remove_symbols_in_file(target_lib, object_file, symbols):
         subprocess.run(["lib", "/OUT:" + target_lib] + obj_list)
 
 def rename_symbols_in_wheel_file(wheel, filename, prefix, protected_symbols = []):
+    from wheel.wheelfile import WheelFile
     with TemporaryDirectory() as tmpdir:
         with WheelFile(wheel) as wf:
             wf.extract(filename, tmpdir)
         rename_symbols_in_file(os.path.join(tmpdir, filename), prefix, protected_symbols)
         with WheelFile(wheel, 'a') as wf:
-            wf
             wf.write(os.path.join(tmpdir, filename), filename)
