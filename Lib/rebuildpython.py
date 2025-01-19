@@ -431,7 +431,7 @@ extern "C" {
             ["python.c"], output_dir=build_dir, include_dirs=include_dirs, macros=macros
         )
 
-        link_flags = ["/NODEFAULTLIB:python3.lib", "/FORCE"]
+        link_flags = ["/LTCG", "/NODEFAULTLIB:python3.lib", "/FORCE"]
         extra_preargs_ = ["/LTCG", "/NODEFAULTLIB:python3.lib", "/FORCE"]
         #if not ('32bit', 'WindowsPE') == platform.architecture():
         #    # Not Win32 where is no PGO
