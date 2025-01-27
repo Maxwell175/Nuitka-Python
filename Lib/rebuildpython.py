@@ -77,7 +77,7 @@ def get_lib_hash():
     for path in list(reversed(sys.path)) + extra_scan_dirs:
         # Ignore the working directory so we don't grab duplicate stuff. Also ignore the pip temp path that is
         # injected during a pip install.
-        if path == os.getcwd() or "pip-install-" in path:
+        if path == os.getcwd() or "pip-install-" in path or not path:
             continue
 
         for lib_file in list(glob.glob(os.path.join("**", "*.a"), root_dir=path, recursive=True)) + list(glob.glob(os.path.join("**", "*.lib"), root_dir=path, recursive=True)):
@@ -116,7 +116,7 @@ def run_rebuild():
     new_hash = get_lib_hash()
 
     # Try to avoid building if nothing has changed.
-    if old_hash == new_hash:
+    if old_hash == new_hash and __name__ != "__main__":
         print("No native library changes detected. Not rebuilding interpreter.")
         return
 
@@ -267,6 +267,8 @@ def run_rebuild():
     ):
         if "interpreter_build" in file:
             continue
+        if __np__.getToolsInstallDir() in file:
+            continue
         link_libs.append(file)
 
     for _name, path in foundLibs.items():
@@ -310,7 +312,7 @@ def run_rebuild():
             if os.path.isfile(tool_link_file):
                 with open(tool_link_file, "r") as f:
                     linkData = json.load(f)
-                    link_libs += linkData.get("libraries", [])
+                    link_libs +=[os.path.join(os.path.dirname(tool_link_file), x) if os.path.isfile(os.path.join(os.path.dirname(tool_link_file), x)) else x for x in linkData.get("libraries", [])]
                     library_dirs += [
                         os.path.join(os.path.dirname(tool_link_file), x)
                         for x in linkData.get("library_dirs", [])
@@ -502,6 +504,9 @@ extern "C" {
                           ],
         )
 
+        if 'Test' not in __np__.run_with_output(os.path.join(build_dir, "python"), "-c", "print('Test')"):
+            raise RuntimeError("Failed to rebuild a working interpreter!")
+
         # Replace running interpreter by moving current version to a temp file, then deleting it. This
         # is to avoid Windows locks
         interpreter_path = os.path.realpath(sys.executable)
@@ -585,6 +590,9 @@ extern "C" {
             extra_preargs=["-g", "-Xlinker"],
             extra_midargs=final_extra_link_args,
         )
+
+        if 'Test' not in __np__.run_with_output(os.path.join(build_dir, "python"), "-c", "print('Test')"):
+            raise RuntimeError("Failed to rebuild a working interpreter!")
 
         otool_output = __np__.run_with_output("otool", "-l", os.path.join(build_dir, "python"), quiet=True)
         curr_load_lines = []
