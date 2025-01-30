@@ -35,7 +35,7 @@ if defined PACKAGES set PACKAGES="/p:Packages=%PACKAGES%"
 
 if defined BUILDX86 (
     if defined REBUILD ( call "%PCBUILD%build.bat" -p Win32 -r %PGO_OPT% -e 
-    ) else if not exist "%Py_OutDir%win32\python.exe" call "%PCBUILD%build.bat" -p Win32 -e 
+    ) else if not exist "%Py_OutDir%win32\python.exe" call "%PCBUILD%build.bat" -p Win32 -e %PGO_OPT%
     if errorlevel 1 goto :eof
 
     %MSBUILD% "%D%make_pkg.proj" /p:Configuration=Release /p:Platform=x86 %OUTPUT% %PACKAGES% %PYTHON_EXE%
@@ -44,7 +44,7 @@ if defined BUILDX86 (
 
 if defined BUILDX64 (
     if defined REBUILD ( call "%PCBUILD%build.bat" -p x64 -e -r %PGO_OPT%
-    ) else if not exist "%Py_OutDir%amd64\python.exe" call "%PCBUILD%build.bat" -p x64 -e --pgo
+    ) else if not exist "%Py_OutDir%amd64\python.exe" call "%PCBUILD%build.bat" -p x64 -e %PGO_OPT%
     if errorlevel 1 goto :eof
 
     %MSBUILD% "%D%make_pkg.proj" /p:Configuration=Release /p:Platform=x64 %OUTPUT% %PACKAGES% %PYTHON_EXE%
