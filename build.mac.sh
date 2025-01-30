@@ -214,7 +214,7 @@ long_version=$(git branch --show-current 2>/dev/null || git symbolic-ref --short
 short_version=$(echo $long_version | sed -e 's#\.##')
 
 # Have this as a standard path. We are not yet relocatable, but that will come hopefully.
-target=~/Library/Nuitka-Python${short_version}
+target=~/Library/Nuitka-Python${short_version}-$arch
 
 if [ ! -z "$1" ]
 then
